@@ -1356,6 +1356,13 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       return a;
     }).catch(function(){ return 0; });
   }
+  /* Сервер узнаёт об оплате через long polling, это занимает до нескольких секунд,
+     поэтому после оплаты пробуем забрать звёзды несколько раз, а не один */
+  function claimSoon(tries){
+    claimStars().then(function(a){
+      if (!a && tries > 1) setTimeout(function(){ claimSoon(tries - 1); }, 1500);
+    });
+  }
   $('tu-go').onclick = function(){
     if (!API_URL || !tg || !tg.initData || !tg.openInvoice) { testTopup(); return; }
     var a = curTu();
@@ -1364,7 +1371,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       if (!j || !j.link) { toast('Не удалось создать счёт'); return; }
       closeSheet('tu');
       tg.openInvoice(j.link, function(st){
-        if (st === 'paid') { setTimeout(claimStars, 800); }
+        if (st === 'paid') { toast('Оплата прошла, зачисляем…'); setTimeout(function(){ claimSoon(8); }, 800); }
         else if (st === 'failed') toast('Оплата не прошла');
       });
     }).catch(function(e){ toast('Сервер недоступен: ' + ((e && e.message) || e)); });
