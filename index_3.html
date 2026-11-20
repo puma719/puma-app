@@ -693,6 +693,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     </div>
     <button class="btn" id="r-go">Сделать ставку</button>
     <div class="panel pot" id="rk-pot" style="margin-top:12px"></div>
+    <div class="panel pot" id="rk-prev" style="margin-top:12px"></div>
   </div>
   <div id="g-race" hidden>
     <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-hr" aria-label="Описание игры" aria-expanded="false">?</button></div>
@@ -709,6 +710,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     </div>
     <button class="btn" id="hr-go">Сделать ставку</button>
     <div class="panel pot" id="hr-pot" style="margin-top:12px"></div>
+    <div class="panel pot" id="hr-prev" style="margin-top:12px"></div>
   </div>
   <div id="g-peaks" hidden>
     <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="pk-hint" aria-label="Описание игры" aria-expanded="false">?</button></div>
@@ -1941,8 +1943,88 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     S.inv[k]--; add(ITEMS[k].v); renderInv(); $('ov').hidden = true; hap('ok'); toast('Продано: +' + fmt(ITEMS[k].v) + ' ' + ST);
   };
 
+  /* ===== multiplayer: shared rounds on the server (rocket and race) =====
+     Everybody inside a game sees the same round, the same multiplier and the same bets, plus the history of previous
+     rounds. If the server cannot be reached, the games fall back to the old local mode. */
+  var MP = { on: !!(API_URL && tg && tg.initData), off: 0, have: false, g: {}, fail: 0, busy: false };
+  function mpNow(){ return Date.now() + MP.off; }  /* server time, ms */
+  function mpOnl(g){ var s = MP.on && MP.g[g]; return s ? (s.online | 0) : 0; }
+  function mpPoll(game){
+    var t0 = Date.now();
+    return apiPost('/api/mp/state', { game: game }).then(function(j){
+      if (!j || !j.round) throw new Error('bad state');
+      var t1 = Date.now(), off = j.now - (t0 + t1) / 2;
+      MP.off = MP.have ? MP.off * 0.6 + off * 0.4 : off; MP.have = true;
+      MP.g[game] = j; MP.fail = 0;
+      mpApply(game, j);
+    }).catch(function(){
+      MP.fail++;
+      if (!MP.g[game] && MP.fail >= 4) { MP.on = false; rReset = true; hReset = true; toast('Нет связи с сервером, игра идёт офлайн'); }
+    });
+  }
+  function mpLoop(){
+    var g = (MP.on && !document.hidden && tab === 'games' && (sub === 'rocket' || sub === 'race')) ? sub : null;
+    if (!g) { setTimeout(mpLoop, 400); return; }
+    mpPoll(g).then(function(){
+      var s = MP.g[g], d = (s && s.phase === 'fly') ? 350 : 800;
+      if (s && s.ends) d = Math.max(60, Math.min(d, s.ends - mpNow() + 40));  /* ask again right after the phase should be over */
+      setTimeout(mpLoop, d);
+    });
+  }
+  function mpApply(game, s){
+    if (game === 'rocket') {
+      rHist = s.hist.slice(); rHistR();
+      rkB.bots = s.bets.filter(function(b){ return !b.me; }).map(function(b){ return { n: b.n, bet: b.bet, au: 1e9, out: b.cash || 0 }; });
+    } else {
+      hHist = s.hist.slice(); hHistR();
+      hrB.bots = s.bets.filter(function(b){ return !b.me; }).map(function(b){ return { n: b.n, bet: b.bet, p: b.pick }; });
+    }
+    mpPrev(game, s);
+  }
+  /* previous round (who bet what, how it ended) and my own previous bets */
+  var mpSig = {};
+  function mpPrev(game, s){
+    var el = $(game === 'rocket' ? 'rk-prev' : 'hr-prev'); if (!el) return;
+    var sig = JSON.stringify([s.prev, s.my]); if (mpSig[game] === sig) return; mpSig[game] = sig;
+    var rk = game === 'rocket', p = s.prev, h = '', rows = '', mr = '';
+    if (p) {
+      p.bets.forEach(function(b){
+        var win = rk ? !!b.cash : b.pick === p.x;
+        var st = win ? (rk ? 'x' + b.cash.toFixed(2) + ' +' + fmt(Math.floor(b.bet * b.cash)) : '+' + fmt(Math.floor(b.bet * HR_MULT))) : (rk ? 'сгорела' : 'проигрыш');
+        var dot = rk ? '' : '<span class="dot" style="background:' + HR_COL[b.pick] + '"></span>';
+        rows += b.me ? meRow(b.bet, st, win ? 'w' : 'l', dot) : botRow(b.n, b.bet, st, win ? 'w' : 'l', dot);
+      });
+      h += '<div class="pot-h"><div><div class="t">Прошлый раунд</div><b>' + (rk ? 'x' + p.x.toFixed(2) : 'Пума №' + (p.x + 1)) + '</b></div><small>' + p.bets.length + ' игроков</small></div>' +
+        (rows ? '<div class="pot-l">' + rows + '</div>' : '<div class="pot-e">Ставок не было</div>');
+    }
+    (s.my || []).forEach(function(r){
+      var win = rk ? !!r.cash : r.pick === r.x, pay = Math.floor(r.bet * (rk ? (r.cash || 0) : HR_MULT));
+      mr += '<div class="pr"><span class="nm">' + (rk ? 'Взрыв x' + r.x.toFixed(2) + (r.cash ? ' · забрали x' + r.cash.toFixed(2) : '') : 'Победила №' + (r.x + 1) + ' · ваш №' + (r.pick + 1)) +
+        '</span><span class="bt">' + fmt(r.bet) + starS() + '</span><span class="st ' + (win ? 'w' : 'l') + '">' + (win ? '+' + fmt(pay) : (rk ? 'сгорела' : 'проигрыш')) + '</span></div>';
+    });
+    h += '<div class="pot-h"' + (p ? ' style="margin-top:12px"' : '') + '><div><div class="t">Мои прошлые ставки</div></div></div>' + (mr ? '<div class="pot-l">' + mr + '</div>' : '<div class="pot-e">Пока нет ставок</div>');
+    el.innerHTML = h;
+  }
+  /* place / cancel a bet on the server first; money is moved on this device only after the server accepted it */
+  function mpBet(game, amount, pick, ok){
+    if (MP.busy) return; MP.busy = true;
+    apiPost('/api/mp/bet', { game: game, amount: amount, pick: pick }).then(function(j){
+      MP.busy = false;
+      if (j && j.ok) { ok(j.round); mpPoll(game); } else { toast((j && j.error) || 'Не удалось сделать ставку'); hap('err'); }
+    }).catch(function(){ MP.busy = false; toast('Нет связи с сервером, попробуйте ещё раз'); hap('err'); });
+  }
+  function mpCancel(game, ok){
+    if (MP.busy) return; MP.busy = true;
+    apiPost('/api/mp/cancel', { game: game }).then(function(j){
+      MP.busy = false;
+      if (j && j.ok) { ok(); mpPoll(game); } else { toast((j && j.error) || 'Ставки уже закрыты'); hap('err'); }
+    }).catch(function(){ MP.busy = false; toast('Нет связи с сервером, попробуйте ещё раз'); });
+  }
+  setTimeout(mpLoop, 0);
+
   /* rocket */
   var rPhase = 'wait', rT0 = Date.now() + 5000, rCp = 2, rM = 1, rBet = 0, rBetKey = null, rSel = null, rMode = 'bal', rDone = false, rReset = false, rHist = [], rSec = 0;
+  var rRound = 0, rBetRound = 0, rCashing = false, rLate = false;
   var AC = null, eng = null;
   function aud(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume(); return AC; }
   function snd(){ return S.mute ? null : aud(); }
@@ -2071,23 +2153,41 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     toast(left > 0 ? 'Банк раунда ограничен ' + fmt(BANK_MAX) + ' ' + ST + '. Можно поставить до ' + fmt(left) : 'Банк раунда заполнен (' + fmt(BANK_MAX) + ' ' + ST + ')'); hap('err');
     return true;
   }
+  function rkRefund(){
+    if (rBetKey) { S.inv[rBetKey] = (S.inv[rBetKey] || 0) + 1; save(); renderInv(); rBetKey = null; rGifts(); } else add(rBet);
+    tb(-rBet); rBet = 0; rBtn();
+  }
+  /* multiplayer: the server records the cash-out and decides if the rocket is still flying */
+  function mpCash(at){
+    if (rCashing || rLate || !rBet || rDone) return;
+    rCashing = true;
+    apiPost('/api/mp/cash', { game: 'rocket', at: at }).then(function(j){
+      rCashing = false;
+      if (j && j.ok) rCash(j.m);
+      else { rLate = true; toast(j && j.error && j.error !== 'late' ? j.error : 'Ракета уже взорвалась'); hap('err'); }
+    }).catch(function(){ rCashing = false; toast('Нет связи с сервером, нажмите ещё раз'); });
+  }
   $('r-go').onclick = function(){
     aud();
     if (rPhase === 'wait') {
-      if (rBet) { if (rBetKey) { S.inv[rBetKey] = (S.inv[rBetKey] || 0) + 1; save(); renderInv(); rBetKey = null; rGifts(); } else add(rBet); tb(-rBet); rBet = 0; rBtn(); return; }
-      if (rMode === 'gift') {
+      if (rBet) { if (MP.on) mpCancel('rocket', rkRefund); else rkRefund(); return; }
+      var gift = rMode === 'gift', bet;
+      if (gift) {
         if (!rSel || !(S.inv[rSel] > 0)) { toast('Выберите подарок'); return; }
-        if (betTooBig(ITEMS[rSel].v) || bankFull(botSum(rkB.bots), ITEMS[rSel].v)) return;
-        S.inv[rSel]--; save(); renderInv(); rBetKey = rSel; rBet = ITEMS[rSel].v; tb(rBet); rGifts();
+        bet = ITEMS[rSel].v;
       } else {
-        var bet = parseInt($('r-bet').value) || 0;
+        bet = parseInt($('r-bet').value) || 0;
         if (bet < 1) { toast('Введите ставку'); return; }
         if (bet > S.bal) { toast('Недостаточно звёзд'); hap('err'); return; }
-        if (betTooBig(bet) || bankFull(botSum(rkB.bots), bet)) return;
-        add(-bet); tb(bet); rBet = bet; rBetKey = null;
       }
-      rDone = false; hap('medium'); beep(660, .06, 'triangle', .2); rBtn();
-    } else if (rPhase === 'fly') rCash(rM);
+      if (betTooBig(bet) || bankFull(botSum(rkB.bots), bet)) return;
+      var commit = function(round){
+        if (gift) { S.inv[rSel]--; save(); renderInv(); rBetKey = rSel; rBet = bet; tb(rBet); rGifts(); }
+        else { add(-bet); tb(bet); rBet = bet; rBetKey = null; }
+        rBetRound = round || 0; rDone = false; rLate = false; rCashing = false; hap('medium'); beep(660, .06, 'triangle', .2); rBtn();
+      };
+      if (MP.on) mpBet('rocket', bet, 0, commit); else commit();
+    } else if (rPhase === 'fly') { if (MP.on) mpCash(Math.floor(rM * 100) / 100); else rCash(rM); }
   };
   function rShip(k, fly){
     var sh = $('rk-ship'), st = $('rk-stage'); sh.classList.toggle('idle', !fly); st.classList.toggle('fly', !!fly);
@@ -2113,7 +2213,51 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     box.innerHTML = h; g.appendChild(box); setTimeout(function(){ box.remove(); }, 4600);
   }
   function rWaitUI(on){ $('rk-ring').hidden = !on; $('rk-m').hidden = on; }
-  setInterval(function(){
+  /* rocket tick, multiplayer: everything comes from the shared server round */
+  function rkTickMP(){
+    if (sub !== 'rocket') { rReset = true; engStop(); return; }
+    var s = MP.g.rocket, m = $('rk-m'), sb = $('rk-sub'), sh = $('rk-ship');
+    if (!s) { rPhase = null; rWaitUI(true); $('rk-rn').textContent = ''; sb.textContent = 'Подключение к раунду…'; $('r-go').disabled = true; return; }
+    var now = mpNow(), ph = s.phase;
+    if (rReset) { rReset = false; rGifts(); rRound = 0; rPhase = null; }
+    if (s.round !== rRound) {  /* a new round started (or we just came in) */
+      rRound = s.round; rPhase = null; rSec = 0; rLate = false; rCashing = false;
+      if (!(rBet && rBetRound === rRound)) { rBet = 0; rBetKey = null; rDone = false; }
+      if (!rBet && s.mine) { rBet = s.mine.bet; rBetRound = rRound; rBetKey = null; rDone = s.mine.cash != null || ph === 'crash'; rGifts(); }
+    }
+    if (ph !== rPhase) {
+      rPhase = ph;
+      if (ph === 'wait') {
+        engStop(); sh.classList.remove('gone', 'lift'); $('rk-stage').classList.remove('bh'); m.className = 'rk-m'; rGifts(); rBtn();
+      } else if (ph === 'fly') {
+        rM = 1; rSec = 0; rWaitUI(false); m.className = 'rk-m'; sh.classList.remove('gone'); engStart();
+        if (now - s.t0 < 1500) { rLaunchFx(); beep(1500, .25, 'sine', .15); }
+        rBtn();
+      } else {  /* crash */
+        rCp = s.cp; rM = rCp; rWaitUI(false); rShip(Math.min(1, Math.log(rM) / Math.log(20)), true);
+        m.className = 'rk-m crash'; m.textContent = rM.toFixed(2) + 'x'; sb.textContent = 'Взрыв!';
+        engStop(); sh.classList.remove('lift', 'ign'); sh.classList.add('gone');
+        if (now - s.t0 < 1500) { if (rM >= 10) { $('rk-stage').classList.add('bh'); suckSnd(); } else boomSnd(); rBoom(); }
+        if (rBet && !rDone) { S.played++; save(); renderStats(); hap('err'); toast(rM >= 10 ? 'Ракета взорвалась, пуму засосала чёрная дыра. Ставка сгорела' : 'Ракета взорвалась. Ставка сгорела'); }
+        rBtn();
+      }
+    }
+    if (ph === 'wait') {
+      var left = Math.max(0, (s.t0 + s.wait - now) / 1000), sec = Math.ceil(left);
+      rWaitUI(true); $('rk-rn').textContent = sec; $('rk-arc').style.strokeDashoffset = 276.5 * (1 - left / (s.wait / 1000));
+      sb.textContent = rBet ? 'Ставка принята: ' + fmt(rBet) + ' ' + ST : 'Приём ставок';
+      if (sec !== rSec && sec > 0) { rSec = sec; beep(sec <= 3 ? 1100 : 780, .08, 'triangle', .2); }
+      rShip(0, false); sh.classList.toggle('ign', left > 0 && left < 1.2);
+    } else if (ph === 'fly') {
+      var t = Math.max(0, (now - s.t0) / 1000); rM = Math.min(500, Math.exp(0.09 * t)); sh.classList.toggle('lift', t < 2.4);
+      var au = parseFloat($('r-auto').value) || 0;
+      if (rBet && !rDone && au >= 1.01 && rM >= au) mpCash(au);
+      $('rk-stage').classList.toggle('bh', rM >= 10); m.className = 'rk-m'; m.textContent = rM.toFixed(2) + 'x'; sb.textContent = rBet && !rDone ? 'Ваша ставка ' + fmt(rBet) + ' ' + ST : 'Полёт';
+      rShip(Math.min(1, Math.log(rM) / Math.log(20)), true); engSet(rM); if (rBet && !rDone) rBtn();
+    }
+  }
+  setInterval(function(){ if (MP.on) rkTickMP(); else rkTickLocal(); }, 60);
+  function rkTickLocal(){
     if (sub !== 'rocket') { rReset = true; engStop(); return; }
     var now = Date.now(), m = $('rk-m'), sb = $('rk-sub'), sh = $('rk-ship');
     if (rReset) { rReset = false; rGifts(); if (rPhase !== 'fly' || !rBet) { rPhase = 'wait'; rT0 = now + 5000; sh.classList.remove('gone'); rBtn(); } }
@@ -2139,11 +2283,12 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       $('rk-stage').classList.toggle('bh', rM >= 10); m.className = 'rk-m'; m.textContent = rM.toFixed(2) + 'x'; sb.textContent = rBet && !rDone ? 'Ваша ставка ' + fmt(rBet) + ' ' + ST : 'Полёт';
       rShip(Math.min(1, Math.log(rM) / Math.log(20)), true); engSet(rM); if (rBet && !rDone) rBtn();
     } else if (now - rT0 > 2500) { rPhase = 'wait'; rT0 = now + 5000; rBet = 0; rBetKey = null; rDone = false; rSec = 0; sh.classList.remove('gone'); rGifts(); rBtn(); }
-  }, 60);
+  }
   rBtn();
 
   /* puma race */
   var hPhase = 'wait', hT0 = Date.now() + 8000, hBet = 0, hPick = 0, hDone = false, hReset = false, hHist = [], hSec = 0, hWin = 0, hPlan = null, hFin = [];
+  var hRound = 0, hBetRound = 0, hSeen = null;
   var HR_MULT = 3.8, HR_WAIT = 8000, HR_COL = ['#FF9F1C', '#FF5E8A', '#7A3BF0', '#2FE08A'], HR_HUE = [0, 330, 255, 120];
   function hPuma(i){ return '<svg viewBox="0 0 40 40" aria-hidden="true" style="filter:hue-rotate(' + HR_HUE[i] + 'deg)">' + PUMA + '</svg>'; }
   function hBuild(){
@@ -2176,6 +2321,19 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }
     return { win: win, plan: plan };
   }
+  /* multiplayer: same plan for everybody, built from the seed and the winner the server sends when betting closes */
+  function mulberry(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function hMakePlanSeed(seed, win){
+    var R = mulberry(seed), plan = [], i, k;
+    for (i = 0; i < 4; i++) {
+      var T = i === win ? 7000 : 7300 + R() * 1500, N = 14, inc = [], s = 0;
+      for (k = 0; k < N; k++) { var v = 0.35 + R() * 1.3; inc.push(v); s += v; }
+      var cum = [0], c = 0;
+      for (k = 0; k < N; k++) { c += inc[k] / s; cum.push(c); }
+      plan.push({ T: T, cum: cum });
+    }
+    return { win: win, plan: plan };
+  }
   function hProg(p, ms){
     if (ms >= p.T) return 1;
     var N = p.cum.length - 1, x = ms / p.T * N, k = Math.floor(x), f = x - k;
@@ -2194,12 +2352,17 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   $('hr-go').onclick = function(){
     aud();
     if (hPhase !== 'wait') return;
-    if (hBet) { add(hBet); hBet = 0; hMarkMine(); hBtn(); return; }
+    if (hBet) {
+      var back = function(){ add(hBet); hBet = 0; hMarkMine(); hBtn(); };
+      if (MP.on) mpCancel('race', back); else back();
+      return;
+    }
     var bet = parseInt($('hr-bet').value) || 0;
     if (bet < 1) { toast('Введите ставку'); return; }
     if (bet > S.bal) { toast('Недостаточно звёзд'); hap('err'); return; }
     if (betTooBig(bet) || bankFull(botSum(hrB.bots), bet)) return;
-    add(-bet); tb(bet); hBet = bet; hDone = false; hMarkMine(); hap('medium'); beep(660, .06, 'triangle', .2); hBtn();
+    var commit = function(round){ add(-bet); tb(bet); hBet = bet; hBetRound = round || 0; hDone = false; hMarkMine(); hap('medium'); beep(660, .06, 'triangle', .2); hBtn(); };
+    if (MP.on) mpBet('race', bet, hPick, commit); else commit();
   };
   function hFinish(){
     hPhase = 'done'; hT0 = Date.now(); hRun(false);
@@ -2216,7 +2379,47 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }
     hBtn();
   }
-  setInterval(function(){
+  /* race tick, multiplayer: phases and the winner come from the shared server round */
+  function hkTickMP(){
+    if (sub !== 'race') { hReset = true; return; }
+    var s = MP.g.race, st = $('hr-st');
+    if (!s) { hPhase = null; hSeen = null; st.textContent = 'Подключение к гонке…'; $('hr-go').disabled = true; return; }
+    var now = mpNow();
+    if (hReset) { hReset = false; hRound = 0; hSeen = null; }
+    if (s.round !== hRound) {
+      hRound = s.round; hSeen = null; hSec = 0;
+      if (!(hBet && hBetRound === hRound)) { hBet = 0; hDone = false; }
+      if (!hBet && s.mine) { hBet = s.mine.bet; hPick = s.mine.pick; hBetRound = hRound; hDone = s.phase === 'done'; }
+      hMarkMine();
+    }
+    if (s.phase !== hSeen) {
+      var was = hPhase; hSeen = s.phase; hPhase = s.phase;
+      if (hSeen === 'wait') {
+        hSetPos([0, 0, 0, 0]); hRun(false);
+        document.querySelectorAll('#hr-lanes .hr-lane').forEach(function(l){ l.classList.remove('win'); });
+        hMarkMine(); hBtn();
+      } else if (hSeen === 'run') {
+        hPlan = hMakePlanSeed(s.seed, s.win); hWin = s.win; hMarkMine(); hRun(true);
+        if (now - s.t0 < 1500) beep(1500, .25, 'sine', .15);
+        st.textContent = 'Гонка началась!'; hBtn();
+      } else {  /* done: finish here too if we did not see the end of the race (came in late) */
+        hWin = s.win; hSetPos([0, 1, 2, 3].map(function(i){ return i === hWin ? 1 : 0.97; }));
+        if (was !== 'done') hFinish();
+      }
+    }
+    if (hSeen === 'wait') {
+      var left = Math.max(0, (s.t0 + s.wait - now) / 1000), sec = Math.ceil(left);
+      st.textContent = (hBet ? 'Ставка на №' + (hPick + 1) + ': ' + fmt(hBet) + ' ' + ST + ' · ' : 'Приём ставок · ') + 'старт через ' + sec + ' с';
+      if (sec !== hSec && sec > 0) { hSec = sec; if (sec <= 3) beep(1100, .08, 'triangle', .2); }
+    } else if (hSeen === 'run' && hPhase === 'run') {
+      var ms = now - s.t0, pos = [], over = true;
+      hPlan.plan.forEach(function(p, i){ var v = hProg(p, ms); pos.push(v); if (v < 1) over = false; });
+      hSetPos(pos);
+      if (pos[hWin] >= 1 || over) { hSetPos([0, 1, 2, 3].map(function(i){ return i === hWin ? 1 : Math.min(pos[i], 0.97); })); hFinish(); }
+    }
+  }
+  setInterval(function(){ if (MP.on) hkTickMP(); else hkTickLocal(); }, 60);
+  function hkTickLocal(){
     if (sub !== 'race') { hReset = true; return; }
     var now = Date.now(), st = $('hr-st');
     if (hReset) { hReset = false; if (hPhase !== 'run' || !hBet) { hPhase = 'wait'; hT0 = now + HR_WAIT; hSetPos([0, 0, 0, 0]); hRun(false); document.querySelectorAll('#hr-lanes .hr-lane').forEach(function(l){ l.classList.remove('win'); }); hBtn(); } }
@@ -2238,7 +2441,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       document.querySelectorAll('#hr-lanes .hr-lane').forEach(function(l){ l.classList.remove('win'); });
       hMarkMine(); hBtn();
     }
-  }, 60);
+  }
   hBuild(); hBtn();
 
   /* bank: shows only your own bet */
@@ -2258,8 +2461,8 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function avHtml(n){ var h = 0, i; for (i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 997; return '<span class="av" style="background:' + AVC[h % AVC.length] + '">' + escH((n.replace('@', '')[0] || '?').toUpperCase()) + '</span>'; }
   function botRow(n, bet, st, cls, extra){ return '<div class="pr">' + avHtml(n) + '<span class="nm">' + escH(n) + '</span>' + (extra || '') + '<span class="bt">' + fmt(bet) + starS() + '</span><span class="st ' + (cls || '') + '">' + (st || '') + '</span></div>'; }
   function meRow(bet, st, cls, extra){ var n = myNick(); return '<div class="pr me">' + avHtml(n) + '<span class="nm">' + escH(n) + '<i>вы</i></span>' + (extra || '') + '<span class="bt">' + fmt(bet) + starS() + '</span><span class="st ' + (cls || '') + '">' + (st || '') + '</span></div>'; }
-  function potHtml(total, cnt, rows, mine){
-    return '<div class="pot-h"><div><div class="t">Общий банк</div><b>' + fmt(total) + starS() + '</b></div><small>' + cnt + ' игроков' + (mine ? '<br>Ваша ставка: ' + fmt(mine) : '') + '</small></div>' +
+  function potHtml(total, cnt, rows, mine, onl){
+    return '<div class="pot-h"><div><div class="t">Общий банк</div><b>' + fmt(total) + starS() + '</b></div><small>' + cnt + ' игроков' + (mine ? '<br>Ваша ставка: ' + fmt(mine) : '') + (onl ? '<br>Сейчас в игре: ' + onl : '') + '</small></div>' +
       (rows ? '<div class="pot-l">' + rows + '</div>' : '<div class="pot-e">Пока нет ставок</div>') + '<div class="pot-n">Лимит банка раунда: ' + fmt(BANK_MAX) + ' ' + ST + '.</div>';
   }
 
@@ -2267,7 +2470,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var rkB = { ph: '', bots: [], used: {}, nextAt: 0, sig: '' };
   function rkPot(){
     var now = Date.now();
-    if (rPhase === 'wait' && rkB.ph !== 'wait') { rkB.bots = []; rkB.used = {}; rkB.nextAt = now + 300; }
+    if (!MP.on && rPhase === 'wait' && rkB.ph !== 'wait') { rkB.bots = []; rkB.used = {}; rkB.nextAt = now + 300; }
     rkB.ph = rPhase;
     if (rPhase === 'fly') rkB.bots.forEach(function(b){ if (!b.out && rM >= b.au) b.out = b.au; });
     var total = rBet, cnt = rBet ? 1 : 0, rows = '';
@@ -2289,8 +2492,8 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       else { st = 'сгорела'; cls = 'l'; }
       rows += botRow(b.n, b.bet, st, cls);
     });
-    var sig = total + '|' + cnt + '|' + rows;
-    if (sig !== rkB.sig) { rkB.sig = sig; $('rk-pot').innerHTML = potHtml(total, cnt, rows, rBet); }
+    var onl = mpOnl('rocket'), sig = total + '|' + cnt + '|' + rows + '|' + onl;
+    if (sig !== rkB.sig) { rkB.sig = sig; $('rk-pot').innerHTML = potHtml(total, cnt, rows, rBet, onl); }
   }
   $('rk-note').textContent = 'Возврат игрокам в среднем ' + RK_RTP + '%. Ракета часто взрывается до x2 (примерно в ' + Math.round((1 - RK_RTP / 200) * 100) + '% раундов). Макс. ставка ' + fmt(BET_MAX) + ' ' + ST + '.';
   setInterval(function(){ if (sub === 'rocket') rkPot(); }, 200);
@@ -2299,7 +2502,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var hrB = { ph: '', bots: [], used: {}, nextAt: 0, sig: '' };
   function hrPot(){
     var now = Date.now();
-    if (hPhase === 'wait' && hrB.ph !== 'wait') { hrB.bots = []; hrB.used = {}; hrB.nextAt = now + 300; }
+    if (!MP.on && hPhase === 'wait' && hrB.ph !== 'wait') { hrB.bots = []; hrB.used = {}; hrB.nextAt = now + 300; }
     hrB.ph = hPhase;
     var tot = [0, 0, 0, 0], total = 0, cnt = 0, rows = '', list = hrB.bots.slice().sort(function(a, b){ return b.bet - a.bet; });
     var dot = function(i){ return '<span class="dot" style="background:' + HR_COL[i] + '"></span>'; };
@@ -2320,8 +2523,8 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       rows += botRow(b.n, b.bet, st, cls, dot(b.p));
     });
     var chips = '<div style="display:flex;gap:6px;margin:2px 0 8px">' + [0, 1, 2, 3].map(function(i){ return '<span style="flex:1;min-width:0;text-align:center;font-size:11px;color:var(--muted);background:var(--card2);border:1px solid ' + (hPhase === 'done' && hWin === i ? 'var(--green)' : 'var(--line)') + ';border-radius:10px;padding:5px 2px"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + HR_COL[i] + ';margin-right:4px"></span>' + fmt(tot[i]) + '</span>'; }).join('') + '</div>';
-    var sig = total + '|' + cnt + '|' + rows + '|' + tot.join(',') + hPhase + hWin;
-    if (sig !== hrB.sig) { hrB.sig = sig; $('hr-pot').innerHTML = potHtml(total, cnt, rows, hBet).replace('<div class="pot-l">', chips + '<div class="pot-l">'); }
+    var onl = mpOnl('race'), sig = total + '|' + cnt + '|' + rows + '|' + tot.join(',') + hPhase + hWin + '|' + onl;
+    if (sig !== hrB.sig) { hrB.sig = sig; $('hr-pot').innerHTML = potHtml(total, cnt, rows, hBet, onl).replace('<div class="pot-l">', chips + '<div class="pot-l">'); }
   }
   setInterval(function(){ if (sub === 'race') hrPot(); }, 200);
 
