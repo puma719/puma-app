@@ -784,7 +784,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   <div class="panel">
     <div class="lbl">Промокод</div>
     <div class="linkbox" style="margin-top:0"><input type="text" id="promo" placeholder="Введите код" autocomplete="off" aria-label="Промокод"><button class="btn sm" id="promoGo">Ввести</button></div>
-    <div style="color:var(--muted);font-size:12px">Для теста: PUMA даёт 10 звёзд, START даёт 5 звёзд. Каждый код работает один раз.</div>
+    <div style="color:var(--muted);font-size:12px">Каждый код можно активировать один раз на аккаунт, число активаций ограничено. У некоторых кодов есть условие по сумме пополнения.</div>
   </div>
   <button class="btn ghost" id="p-reset">Сбросить прогресс</button>
   <p class="note">Тестовая версия. Все звёзды виртуальные, вывода нет.</p>
@@ -864,7 +864,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#120A2B'); tg.setBackgroundColor('#120A2B'); } catch (e) {} }
   var $ = function(id){ return document.getElementById(id); };
   var KEY = 'pumaup_test_v3', ST = '⭐';
-  var S = { bal: 100, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now() };
+  var S = { bal: 0, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now() };
   try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
   function fmt(n){ return Math.round(n).toLocaleString('ru-RU'); }
@@ -1228,9 +1228,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     S.inv[k]--; add(ITEMS[k].v); renderInv(); hap('ok'); toast('Продано: +' + fmt(ITEMS[k].v) + ' ' + ST);
   });
 
-  /* live ticker (demo feed + own drops) */
-  var NAMES = ['@Axims', 'Krl_chh', 'lüdoed', 'Moon', 'Sasha_77', '@vika', 'Dimon', 'Nika', '@fox_ru', 'Artem'];
-  var DEMO = ['s1', 's1', 's1', 's3', 's5', 'teddy', 'teddy', 'cake', 'bouquet', 'champagne', 'ring', 'diamond', 'n_lolpop', 'n_vicecream', 'n_toybear', 'n_candycane'];
+  /* live ticker: only your own drops */
   function tickCard(name, id, me){
     var it = ITEMS[id];
     return '<div class="tk' + (me ? ' me' : '') + '">' + svg(it.a) + '<div><div class="n">' + name + '</div><div class="v">' + fmt(it.v) + ' ' + ST + '</div></div></div>';
@@ -1238,10 +1236,9 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function pushTick(name, id, me){
     var tr = $('ticker'); tr.insertAdjacentHTML('afterbegin', tickCard(name, id, me));
     while (tr.children.length > 14) tr.removeChild(tr.lastChild);
-    tr.scrollLeft = 0;
+    tr.scrollLeft = 0; tr.parentNode.hidden = false;
   }
-  for (var q = 0; q < 8; q++) $('ticker').insertAdjacentHTML('beforeend', tickCard(NAMES[rnd(NAMES.length)], DEMO[rnd(DEMO.length)], false));
-  setInterval(function(){ pushTick(NAMES[rnd(NAMES.length)], DEMO[rnd(DEMO.length)], false); }, 5000);
+  $('ticker').parentNode.hidden = !$('ticker').children.length;
   function myName(){
     var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
     return u ? (u.username ? '@' + u.username : (u.first_name || 'Вы')) : 'Вы';
@@ -1261,7 +1258,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     $('g-peaks').hidden = !(tab === 'games' && sub === 'peaks');
     $('cases-home').hidden = tab === 'cases' && !!sub;
     $('case-page').hidden = !(tab === 'cases' && sub);
-    $('nav').hidden = !!sub; $('ticker').parentNode.hidden = false;
+    $('nav').hidden = !!sub; $('ticker').parentNode.hidden = !$('ticker').children.length;
     if (tg && tg.BackButton) { try { if (sub) tg.BackButton.show(); else tg.BackButton.hide(); } catch (e) {} }
     window.scrollTo(0, 0);
   }
@@ -2187,9 +2184,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }, 60);
   hBuild(); hBtn();
 
-  /* shared bank: bots bet so you can see how it works (TEST). Bot bets do not change payouts. */
-  var BOTN = ['Axims', 'Krl_chh', 'lüdoed', 'Moon', 'Sasha_77', 'vika', 'Dimon', 'Nika', 'fox_ru', 'Artem', 'Max_play', 'Lisa', 'puma_fan', 'Ivan_K', 'Olga', 'Tigr', 'Zed', 'kirill_9', 'Anya', 'Bogdan'];
-  var BOTB = [5, 5, 10, 10, 10, 25, 25, 50, 50, 100, 100, 250, 500, 1000];
+  /* bank: shows only your own bet */
   var AVC = ['#FF9F1C', '#FF5E8A', '#8E6BFF', '#2FE08A', '#19E3FF', '#FFD23F', '#FF7A59'];
   function escH(t){ return String(t).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function myNick(){
@@ -2202,10 +2197,8 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function meRow(bet, st, cls, extra){ var n = myNick(); return '<div class="pr me">' + avHtml(n) + '<span class="nm">' + escH(n) + '<i>вы</i></span>' + (extra || '') + '<span class="bt">' + fmt(bet) + starS() + '</span><span class="st ' + (cls || '') + '">' + (st || '') + '</span></div>'; }
   function potHtml(total, cnt, rows, mine){
     return '<div class="pot-h"><div><div class="t">Общий банк</div><b>' + fmt(total) + starS() + '</b></div><small>' + cnt + ' игроков' + (mine ? '<br>Ваша ставка: ' + fmt(mine) : '') + '</small></div>' +
-      (rows ? '<div class="pot-l">' + rows + '</div>' : '<div class="pot-e">Пока нет ставок</div>') + '<div class="pot-n">Лимит банка раунда: ' + fmt(BANK_MAX) + ' ' + ST + '. Тест: ставки ботов на выплаты не влияют.</div>';
+      (rows ? '<div class="pot-l">' + rows + '</div>' : '<div class="pot-e">Пока нет ставок</div>') + '<div class="pot-n">Лимит банка раунда: ' + fmt(BANK_MAX) + ' ' + ST + '.</div>';
   }
-  var pickOf = function(a){ return a[Math.floor(Math.random() * a.length)]; };
-  var botName = function(used){ var n, k = 0; do { n = pickOf(BOTN); k++; } while (used[n] && k < 30); used[n] = 1; return n; };
 
   /* rocket bank */
   var rkB = { ph: '', bots: [], used: {}, nextAt: 0, sig: '' };
@@ -2213,11 +2206,6 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var now = Date.now();
     if (rPhase === 'wait' && rkB.ph !== 'wait') { rkB.bots = []; rkB.used = {}; rkB.nextAt = now + 300; }
     rkB.ph = rPhase;
-    if (rPhase === 'wait' && now >= rkB.nextAt && rkB.bots.length < 16) {
-      rkB.nextAt = now + 250 + Math.random() * 900;
-      var nb = pickOf(BOTB);
-      if (botSum(rkB.bots) + rBet + nb <= BANK_MAX) rkB.bots.push({ n: botName(rkB.used), bet: nb, au: Math.round((1.1 + Math.pow(Math.random(), 2.2) * 9) * 100) / 100, out: 0 });
-    }
     if (rPhase === 'fly') rkB.bots.forEach(function(b){ if (!b.out && rM >= b.au) b.out = b.au; });
     var total = rBet, cnt = rBet ? 1 : 0, rows = '';
     var list = rkB.bots.slice().sort(function(a, b){ return b.bet - a.bet; });
@@ -2250,11 +2238,6 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var now = Date.now();
     if (hPhase === 'wait' && hrB.ph !== 'wait') { hrB.bots = []; hrB.used = {}; hrB.nextAt = now + 300; }
     hrB.ph = hPhase;
-    if (hPhase === 'wait' && now >= hrB.nextAt && hrB.bots.length < 14) {
-      hrB.nextAt = now + 250 + Math.random() * 700;
-      var nb = pickOf(BOTB);
-      if (botSum(hrB.bots) + hBet + nb <= BANK_MAX) hrB.bots.push({ n: botName(hrB.used), bet: nb, p: Math.floor(Math.random() * 4) });
-    }
     var tot = [0, 0, 0, 0], total = 0, cnt = 0, rows = '', list = hrB.bots.slice().sort(function(a, b){ return b.bet - a.bet; });
     var dot = function(i){ return '<span class="dot" style="background:' + HR_COL[i] + '"></span>'; };
     if (hBet) { tot[hPick] += hBet; total += hBet; cnt++; }
@@ -2555,13 +2538,12 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     { id: 'r2', title: 'Алмазный розыгрыш', prize: 'Алмаз', art: 'diamond', cycle: 26 * 3600e3, base: 842, req: 100 },
     { id: 'r3', title: 'Мега-розыгрыш', prize: '500 ' + ST, art: 'nft', cycle: 72 * 3600e3, base: 3920, req: 500 }
   ];
-  /* leaderboard by turnover (TEST: other players are simulated) */
+  /* leaderboard by turnover: only you */
   var LB_PRIZES = [150, 100, 50], LB_CYCLE = 7 * 24 * 3600e3;
   function renderLeaders(){
     var el = $('lb'); if (!el) return;
     var el0 = (Date.now() - S.t0) % LB_CYCLE, h = el0 / 3600e3, me = myNick();
-    var rows = BOTN.slice(0, 9).map(function(n, i){ return { n: n, t: Math.round((900 + ((i * 7919) % 1300)) * (1 + h / 12) + (i + 1) * 40 * h) }; });
-    rows.push({ n: me, t: S.turn || 0, me: true });
+    var rows = [{ n: me, t: S.turn || 0, me: true }];
     rows.sort(function(a, b){ return b.t - a.t; });
     var medal = ['🥇', '🥈', '🥉'];
     el.innerHTML = '<div class="lb-h">Лидеры по обороту</div><div class="lb-s">Оборот — сумма всех ваших ставок за неделю. Конец через <b data-lbend>' + left(LB_CYCLE - el0) + '</b></div>' +
@@ -2590,13 +2572,17 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   setInterval(function(){ if (!$('v-raffles').hidden) renderLeaders(); }, 3000);
 
   /* bonuses */
-  var CODES = { PUMA: 10, START: 5 };
   $('promoGo').onclick = function(){
-    var c = $('promo').value.trim().toUpperCase();
+    var c = $('promo').value.trim().toUpperCase(), btn = $('promoGo');
     if (!c) { toast('Введите код'); return; }
-    if (!CODES[c]) { toast('Такого кода нет'); hap('err'); return; }
-    if (S.promo[c]) { toast('Код уже использован'); return; }
-    S.promo[c] = true; add(CODES[c]); $('promo').value = ''; hap('ok'); toast('+' + CODES[c] + ' ' + ST);
+    if (!API_URL || !tg || !tg.initData) { toast('Откройте приложение из Telegram'); return; }
+    if (btn.disabled) return;
+    btn.disabled = true;
+    apiPost('/api/promo', { code: c }).then(function(j){
+      btn.disabled = false;
+      if (j && j.reward > 0) { S.promo[c] = true; add(j.reward); $('promo').value = ''; hap('ok'); toast('+' + fmt(j.reward) + ' ' + ST); return; }
+      hap('err'); toast((j && j.error) || 'Не удалось активировать код');
+    }).catch(function(){ btn.disabled = false; toast('Сервер недоступен'); });
   };
 
   /* profile */
@@ -2613,7 +2599,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var resetArmed = false;
   $('p-reset').onclick = function(){
     if (!resetArmed) { resetArmed = true; $('p-reset').textContent = 'Нажмите ещё раз для сброса'; setTimeout(function(){ resetArmed = false; $('p-reset').textContent = 'Сбросить прогресс'; }, 3000); return; }
-    S = { bal: 100, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now() }; save();
+    S = { bal: 0, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now() }; save();
     setFast(false, false); renderStats(); renderCases(); renderRaffles(); resetArmed = false; $('p-reset').textContent = 'Сбросить прогресс'; toast('Прогресс сброшен');
   };
 
