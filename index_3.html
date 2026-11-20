@@ -1228,17 +1228,28 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     S.inv[k]--; add(ITEMS[k].v); renderInv(); hap('ok'); toast('Продано: +' + fmt(ITEMS[k].v) + ' ' + ST);
   });
 
-  /* live ticker: only your own drops */
+  /* live ticker: real drops of real players (via server) */
   function tickCard(name, id, me){
-    var it = ITEMS[id];
-    return '<div class="tk' + (me ? ' me' : '') + '">' + svg(it.a) + '<div><div class="n">' + name + '</div><div class="v">' + fmt(it.v) + ' ' + ST + '</div></div></div>';
+    var it = ITEMS[id]; if (!it) return '';
+    return '<div class="tk' + (me ? ' me' : '') + '">' + svg(it.a) + '<div><div class="n">' + escH(name) + '</div><div class="v">' + fmt(it.v) + ' ' + ST + '</div></div></div>';
+  }
+  function renderFeed(list){
+    var tr = $('ticker');
+    tr.innerHTML = (list || []).map(function(x){ return tickCard(x.n, x.item, x.me); }).join('');
+    tr.parentNode.hidden = !tr.children.length;
+  }
+  function feedSync(item){
+    if (!API_URL || !tg || !tg.initData) return;
+    apiPost('/api/feed', item ? { item: item } : {}).then(function(j){ if (j && j.items) renderFeed(j.items); }).catch(function(){});
   }
   function pushTick(name, id, me){
-    var tr = $('ticker'); tr.insertAdjacentHTML('afterbegin', tickCard(name, id, me));
-    while (tr.children.length > 14) tr.removeChild(tr.lastChild);
-    tr.scrollLeft = 0; tr.parentNode.hidden = false;
+    var tr = $('ticker'), card = tickCard(name, id, me);
+    if (card) { tr.insertAdjacentHTML('afterbegin', card); tr.scrollLeft = 0; tr.parentNode.hidden = false; }
+    if (me) feedSync(id);
   }
-  $('ticker').parentNode.hidden = !$('ticker').children.length;
+  $('ticker').parentNode.hidden = true;
+  feedSync();
+  setInterval(function(){ if (!document.hidden) feedSync(); }, 7000);
   function myName(){
     var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
     return u ? (u.username ? '@' + u.username : (u.first_name || 'Вы')) : 'Вы';
