@@ -1176,16 +1176,16 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var GLOW = { upgrade: '#FF8A3D', mines: '#8B4DFF', rocket: '#FF5E8A', tower: '#FF5E3A', race: '#FF5E8A', peaks: '#FF8A5E' };
   var GAC = { upgrade: '#FF9F1C', mines: '#2FE08A', rocket: '#8E6BFF', tower: '#19E3FF', race: '#FF5E8A', peaks: '#FFB347' };
   var GAMES = [
-    { id: 'upgrade', n: 'Апгрейд', base: 214 },
-    { id: 'mines', n: 'Мины', base: 32 },
-    { id: 'rocket', n: 'Ракета', base: 72 },
-    { id: 'tower', n: 'Башня', base: 58 },
-    { id: 'race', n: 'Скачки пум', base: 47 },
-    { id: 'peaks', n: 'Горы', base: 39 }
+    { id: 'upgrade', n: 'Апгрейд' },
+    { id: 'mines', n: 'Мины' },
+    { id: 'rocket', n: 'Ракета' },
+    { id: 'tower', n: 'Башня' },
+    { id: 'race', n: 'Скачки пум' },
+    { id: 'peaks', n: 'Горы' }
   ];
   $('ggrid').innerHTML = GAMES.map(function(g){
     return '<button class="gc' + (g.soon ? ' soon' : '') + '" data-game="' + g.id + '" style="--ac:' + (GAC[g.id] || '#FF9F1C') + '">' + GART[g.id] + '<i class="sh"></i>' +
-      (g.soon ? '<span class="pill soon"><i></i>Скоро</span>' : '<span class="pill"><i></i><span data-cnt="' + g.id + '">' + g.base + '</span> играют</span>') +
+      (g.soon ? '<span class="pill soon"><i></i>Скоро</span>' : '<span class="pill"><i></i><span data-cnt="' + g.id + '">0</span> играют</span>') +
       '<span class="nm">' + g.n + '</span>' + '</button>';
   }).join('');
   Object.keys(GLOW).forEach(function(id){
@@ -1291,14 +1291,19 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var b = e.target.closest('[data-game]'); if (!b) return;
     var g = b.dataset.game;
     if (g === 'plinko') { toast('Эта игра скоро появится'); return; }
-    sub = g; render(); hap('light');
+    sub = g; render(); hap('light'); onlineSync();
   });
-  setInterval(function(){
-    GAMES.forEach(function(g){
-      var el = document.querySelector('[data-cnt="' + g.id + '"]'); if (!el) return;
-      el.textContent = Math.max(1, g.base + rnd(9) - 4);
-    });
-  }, 4000);
+  /* real online counters: server counts players who are inside each game right now */
+  function onlineSync(){
+    if (!API_URL || !tg || !tg.initData) return;
+    var g = (tab === 'games' && sub && GAMES.some(function(x){ return x.id === sub; })) ? sub : null;
+    apiPost('/api/online', g ? { game: g } : {}).then(function(j){
+      if (!j || !j.counts) return;
+      GAMES.forEach(function(x){ var el = document.querySelector('[data-cnt="' + x.id + '"]'); if (el) el.textContent = j.counts[x.id] || 0; });
+    }).catch(function(){});
+  }
+  onlineSync();
+  setInterval(function(){ if (!document.hidden) onlineSync(); }, 6000);
 
   /* sheets */
   function openSheet(id){ $(id).hidden = false; hap('light'); }
@@ -2545,10 +2550,11 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   /* raffles */
   var RAFFLES = [
     /* req = how many stars must be topped up in total to join (0 = free raffle) */
-    { id: 'r1', title: 'Золотая пума', prize: '100 ' + ST, art: 'star', cycle: 3 * 3600e3, base: 1284, req: 0 },
-    { id: 'r2', title: 'Алмазный розыгрыш', prize: 'Алмаз', art: 'diamond', cycle: 26 * 3600e3, base: 842, req: 100 },
-    { id: 'r3', title: 'Мега-розыгрыш', prize: '500 ' + ST, art: 'nft', cycle: 72 * 3600e3, base: 3920, req: 500 }
+    { id: 'r1', title: 'Золотая пума', prize: '100 ' + ST, art: 'star', cycle: 3 * 3600e3, req: 0 },
+    { id: 'r2', title: 'Алмазный розыгрыш', prize: 'Алмаз', art: 'diamond', cycle: 26 * 3600e3, req: 100 },
+    { id: 'r3', title: 'Мега-розыгрыш', prize: '500 ' + ST, art: 'nft', cycle: 72 * 3600e3, req: 500 }
   ];
+  var RF = {};  /* real participants per raffle, from the server: { id: { n, joined } } */
   /* leaderboard by turnover: only you */
   var LB_PRIZES = [150, 100, 50], LB_CYCLE = 7 * 24 * 3600e3;
   function renderLeaders(){
@@ -2563,20 +2569,32 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var mi = rows.findIndex(function(r){ return r.me; });
     if (mi >= 7) el.innerHTML += '<div class="lb-r me"><span class="pl">' + (mi + 1) + '</span>' + avHtml(me) + '<span class="nm">' + escH(me) + '<i>вы</i></span><span class="tv">' + fmt(rows[mi].t) + starS() + '</span><span class="pz"></span></div>';
   }
-  function endsIn(r){ return r.cycle - ((Date.now() - S.t0) % r.cycle); }
+  function endsIn(r){ return r.cycle - (Date.now() % r.cycle); }
   function renderRaffles(){
     renderLeaders();
     $('raffles-list').innerHTML = RAFFLES.map(function(r){
-      var j = !!S.joined[r.id];
-      return '<div class="panel"><div style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div class="rart">' + svg(r.art) + '</div><div style="min-width:0"><div style="font-family:var(--display);font-weight:600;font-size:15px">' + r.title + '</div><div style="color:var(--gold);font-weight:600;margin-top:4px">Приз: ' + r.prize + '</div><div style="margin-top:6px"><span style="display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:' + (r.req ? 'rgba(255,159,28,.18);color:var(--orange)' : 'rgba(47,224,138,.16);color:var(--green)') + '">' + (r.req ? 'За пополнение от ' + fmt(r.req) + ' ' + ST : 'Бесплатно') + '</span></div></div></div><div class="row" style="margin-bottom:12px"><div class="stat"><span>До конца</span><b data-end="' + r.id + '">' + left(endsIn(r)) + '</b></div><div class="stat"><span>Участников</span><b>' + fmt(r.base + (j ? 1 : 0)) + '</b></div></div><button class="btn' + (j ? ' ghost' : '') + '" data-join="' + r.id + '"' + (j ? ' disabled' : '') + ' style="font-size:14px;padding:14px">' + (j ? 'Вы участвуете' : (!r.req || (S.dep || 0) >= r.req ? 'Участвовать' : 'Пополнить (' + fmt(S.dep || 0) + ' / ' + fmt(r.req) + ' ' + ST + ')')) + '</button></div>';
+      var rs = RF[r.id] || { n: 0, joined: false }, j = !!rs.joined;
+      return '<div class="panel"><div style="display:flex;gap:14px;align-items:center;margin-bottom:12px"><div class="rart">' + svg(r.art) + '</div><div style="min-width:0"><div style="font-family:var(--display);font-weight:600;font-size:15px">' + r.title + '</div><div style="color:var(--gold);font-weight:600;margin-top:4px">Приз: ' + r.prize + '</div><div style="margin-top:6px"><span style="display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:' + (r.req ? 'rgba(255,159,28,.18);color:var(--orange)' : 'rgba(47,224,138,.16);color:var(--green)') + '">' + (r.req ? 'За пополнение от ' + fmt(r.req) + ' ' + ST : 'Бесплатно') + '</span></div></div></div><div class="row" style="margin-bottom:12px"><div class="stat"><span>До конца</span><b data-end="' + r.id + '">' + left(endsIn(r)) + '</b></div><div class="stat"><span>Участников</span><b>' + fmt(rs.n) + '</b></div></div><button class="btn' + (j ? ' ghost' : '') + '" data-join="' + r.id + '"' + (j ? ' disabled' : '') + ' style="font-size:14px;padding:14px">' + (j ? 'Вы участвуете' : (!r.req || (S.dep || 0) >= r.req ? 'Участвовать' : 'Пополнить (' + fmt(S.dep || 0) + ' / ' + fmt(r.req) + ' ' + ST + ')')) + '</button></div>';
     }).join('');
   }
   $('raffles-list').addEventListener('click', function(e){
     var b = e.target.closest('[data-join]'); if (!b) return;
     var rf = RAFFLES.filter(function(x){ return x.id === b.dataset.join; })[0];
     if (rf && rf.req && (S.dep || 0) < rf.req) { toast('Нужно пополнить на ' + fmt(rf.req - (S.dep || 0)) + ' ' + ST + ' больше'); openTopup(); return; }
-    S.joined[b.dataset.join] = true; save(); renderRaffles(); hap('ok'); toast('Вы в розыгрыше');
+    if (!API_URL || !tg || !tg.initData) { toast('Откройте приложение из Telegram'); return; }
+    var id = b.dataset.join; b.disabled = true;
+    apiPost('/api/raffles', { join: id }).then(function(j){
+      if (j && j.raffles) { RF = j.raffles; renderRaffles(); }
+      if (j && j.raffles && j.raffles[id] && j.raffles[id].joined) { hap('ok'); toast('Вы в розыгрыше'); }
+      else { b.disabled = false; hap('err'); toast((j && j.error) || 'Не удалось вступить'); }
+    }).catch(function(){ b.disabled = false; toast('Сервер недоступен'); });
   });
+  function raffleSync(){
+    if (!API_URL || !tg || !tg.initData) return;
+    apiPost('/api/raffles', {}).then(function(j){ if (j && j.raffles) { RF = j.raffles; renderRaffles(); } }).catch(function(){});
+  }
+  raffleSync();
+  setInterval(function(){ if (!document.hidden && !$('v-raffles').hidden) raffleSync(); }, 10000);
   setInterval(function(){
     RAFFLES.forEach(function(r){ var el = document.querySelector('[data-end="' + r.id + '"]'); if (el) el.textContent = left(endsIn(r)); });
   }, 1000);
