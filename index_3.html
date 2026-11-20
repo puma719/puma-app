@@ -1368,7 +1368,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var a = curTu();
     if (a < 1 || a > 100000) { toast('Введите сумму от 1 до 100 000'); return; }
     apiPost('/api/invoice', { amount: a }).then(function(j){
-      if (!j || !j.link) { toast('Не удалось создать счёт'); return; }
+      if (!j || !j.link) { toast('Не удалось создать счёт: ' + ((j && (j.error || j.message)) || '?')); return; }
       closeSheet('tu');
       tg.openInvoice(j.link, function(st){
         if (st === 'paid') { toast('Оплата прошла, зачисляем…'); setTimeout(function(){ claimSoon(8); }, 800); }
