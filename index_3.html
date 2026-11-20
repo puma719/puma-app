@@ -782,6 +782,11 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   </div>
   <div class="panel"><div class="lbl">Инвентарь</div><div id="inv-list"></div></div>
   <div class="panel">
+    <div class="lbl">NFT в боте</div>
+    <div id="nft-bot-list"><div class="empty">Пока пусто.</div></div>
+    <div id="nft-bot-how" style="color:var(--muted);font-size:12px;margin-top:10px"></div>
+  </div>
+  <div class="panel">
     <div class="lbl">Промокод</div>
     <div class="linkbox" style="margin-top:0"><input type="text" id="promo" placeholder="Введите код" autocomplete="off" aria-label="Промокод"><button class="btn sm" id="promoGo">Ввести</button></div>
     <div style="color:var(--muted);font-size:12px">Каждый код можно активировать один раз на аккаунт, число активаций ограничено. У некоторых кодов есть условие по сумме пополнения.</div>
@@ -2244,6 +2249,12 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     if (!u) return 'Гость';
     return u.username ? '@' + u.username : (((u.first_name || '') + ' ' + (u.last_name || '')).trim() || 'Игрок');
   }
+  /* leaderboard shows the display name only, never the @username */
+  function lbName(){
+    var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    if (!u) return 'Гость';
+    return ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || 'Игрок';
+  }
   function avHtml(n){ var h = 0, i; for (i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 997; return '<span class="av" style="background:' + AVC[h % AVC.length] + '">' + escH((n.replace('@', '')[0] || '?').toUpperCase()) + '</span>'; }
   function botRow(n, bet, st, cls, extra){ return '<div class="pr">' + avHtml(n) + '<span class="nm">' + escH(n) + '</span>' + (extra || '') + '<span class="bt">' + fmt(bet) + starS() + '</span><span class="st ' + (cls || '') + '">' + (st || '') + '</span></div>'; }
   function meRow(bet, st, cls, extra){ var n = myNick(); return '<div class="pr me">' + avHtml(n) + '<span class="nm">' + escH(n) + '<i>вы</i></span>' + (extra || '') + '<span class="bt">' + fmt(bet) + starS() + '</span><span class="st ' + (cls || '') + '">' + (st || '') + '</span></div>'; }
@@ -2586,7 +2597,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   /* raffles */
   var RAFFLES = [
     /* req = how many stars must be topped up in total to join (0 = free raffle) */
-    { id: 'r1', title: 'Золотая пума', prize: '100 ' + ST, art: 'star', cycle: 3 * 3600e3, req: 0 },
+    { id: 'r1', title: 'Золотая пума', prize: '50 ' + ST, art: 'star', cycle: 3 * 3600e3, req: 0 },
     { id: 'r2', title: 'Алмазный розыгрыш', prize: 'Алмаз', art: 'diamond', cycle: 26 * 3600e3, req: 100 },
     { id: 'r3', title: 'Мега-розыгрыш', prize: '500 ' + ST, art: 'nft', cycle: 72 * 3600e3, req: 500 }
   ];
@@ -2595,7 +2606,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var LB_PRIZES = [150, 100, 50], LB_CYCLE = 7 * 24 * 3600e3;
   function renderLeaders(){
     var el = $('lb'); if (!el) return;
-    var el0 = (Date.now() - S.t0) % LB_CYCLE, h = el0 / 3600e3, me = myNick();
+    var el0 = (Date.now() - S.t0) % LB_CYCLE, h = el0 / 3600e3, me = lbName();
     var rows = [{ n: me, t: S.turn || 0, me: true }];
     rows.sort(function(a, b){ return b.t - a.t; });
     var medal = ['🥇', '🥈', '🥉'];
@@ -2635,6 +2646,25 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     RAFFLES.forEach(function(r){ var el = document.querySelector('[data-end="' + r.id + '"]'); if (el) el.textContent = left(endsIn(r)); });
   }, 1000);
   setInterval(function(){ if (!$('v-raffles').hidden) renderLeaders(); }, 3000);
+
+
+  /* real NFT deposits: a player sends an NFT gift to the bot's connected account, the server credits it instantly */
+  var NFTB = { items: [], account: '' };
+  function renderNftBot(){
+    var el = $('nft-bot-list'); if (!el) return;
+    el.innerHTML = NFTB.items.length ? NFTB.items.map(function(x){
+      return '<div class="inv">' + svg('nft') + '<div class="nm">' + escH(x.base) + ' #' + escH(x.num) + '<small>' + (x.model ? escH(x.model) + ' · ' : '') + new Date(x.ts * 1000).toLocaleDateString('ru-RU') + '</small></div></div>';
+    }).join('') : '<div class="empty">Пока пусто.</div>';
+    $('nft-bot-how').textContent = NFTB.account
+      ? 'Чтобы закинуть NFT, отправьте его подарком на аккаунт ' + NFTB.account + '. Он сразу появится здесь.'
+      : 'Чтобы закинуть NFT, отправьте его подарком на аккаунт бота. Адрес появится здесь после подключения аккаунта.';
+  }
+  function nftSync(){
+    if (!API_URL || !tg || !tg.initData) return;
+    apiPost('/api/nfts', {}).then(function(j){ if (j && j.items) { NFTB = { items: j.items, account: j.account || '' }; renderNftBot(); } }).catch(function(){});
+  }
+  renderNftBot(); nftSync();
+  setInterval(function(){ if (!document.hidden && !$('v-profile').hidden) nftSync(); }, 4000);
 
   /* bonuses */
   $('promoGo').onclick = function(){
