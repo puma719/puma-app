@@ -1820,7 +1820,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function txFor(idx, jitter){ var W = $('roul') ? $('roul').clientWidth : 360; return W / 2 - (idx * CW + 48) + (jitter || 0); }
   function stripHtml(ids){ var rm = curCase ? rarMap(curCase) : {}; return ids.map(function(id){ return '<div class="rit' + (id in rm ? ' rr r-' + RAR[rm[id]][0] : '') + '">' + svg(ITEMS[id].a) + '</div>'; }).join(''); }
   function openCasePage(c){
-    curCase = c; sub = 'case'; render();
+    curCase = c; sub = 'case'; subGate = null; render();
     var isFree = c.id === 'free', rmc = rarMap(c);
     var h = '<button class="back" id="case-back">← Назад</button>' +
       '<div class="panel dayp"><div class="dhead">' + boxArt(c.c1, c.c2).replace('<img class="bx"', '<img') + '<h2>' + c.name + '</h2></div>' +
@@ -1843,13 +1843,35 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var c = curCase; if (!c || !$('case-act')) return;
     if (c.id === 'free') {
       var w = wait(c);
-      $('case-act').innerHTML = w > 0
-        ? '<div class="wait"><small>Ежедневное открытие через</small><b id="wt">' + left(w) + '</b></div>'
-        : '<button class="btn alt" id="case-go">Открыть бесплатно</button>';
+      if (w > 0) {
+        $('case-act').innerHTML = '<div class="wait"><small>Ежедневное открытие через</small><b id="wt">' + left(w) + '</b></div>';
+      } else if (subGate !== null) {
+        $('case-act').innerHTML = '<div class="wait"><small>' + escH(subGate) + '</small></div>' +
+          '<button class="btn alt" id="sub-go" style="margin-top:10px">Подписаться на @pumaup</button>' +
+          '<button class="btn ghost" id="sub-chk" style="margin-top:8px">Я подписался — проверить</button>';
+        $('sub-go').onclick = openChannel;
+        $('sub-chk').onclick = function(){ startCase(c); };
+      } else {
+        $('case-act').innerHTML = '<button class="btn alt" id="case-go">Открыть бесплатно</button>' +
+          '<div style="text-align:center;color:var(--muted);font-size:13px;margin-top:8px">Нужна подписка на @pumaup</div>';
+      }
     } else {
       $('case-act').innerHTML = '<button class="btn" id="case-go">Открыть за ' + fmt(c.cost) + ' ' + ST + '</button>';
     }
     var g = $('case-go'); if (g) g.onclick = function(){ startCase(c); };
+  }
+  /* free case is available only to subscribers of the channel; checked on the server (getChatMember) */
+  var SUB_URL = 'https://t.me/pumaup', subGate = null, subChecking = false;
+  function openChannel(){
+    try { if (tg && tg.openTelegramLink) { tg.openTelegramLink(SUB_URL); return; } } catch (e) {}
+    window.open(SUB_URL, '_blank');
+  }
+  function checkSub(){
+    if (!API_URL || !tg || !tg.initData) return Promise.resolve({ ok: false, msg: 'Откройте приложение из Telegram, чтобы проверить подписку' });
+    return apiPost('/api/subscribed', {}).then(function(j){
+      if (j && j.subscribed) return { ok: true };
+      return { ok: false, msg: (j && j.error) || 'Подписка на @pumaup не найдена. Подпишитесь и нажмите «Я подписался»' };
+    }).catch(function(){ return { ok: false, msg: 'Сервер недоступен, попробуйте позже' }; });
   }
   function pick(c){
     var pl = c.loot.filter(function(l){ return l[1] > 0; });
@@ -1859,6 +1881,20 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }
   var lastWin = null, lastCost = 0;
   function startCase(c){
+    if (busy) return;
+    if (c.id !== 'free') { runCase(c); return; }
+    if (wait(c) > 0 || subChecking) return;
+    subChecking = true;
+    var b0 = $('case-go') || $('sub-chk');
+    if (b0) { b0.disabled = true; b0.textContent = 'Проверяем подписку…'; }
+    checkSub().then(function(r){
+      subChecking = false;
+      if (r.ok) { subGate = null; renderAct(); runCase(c); return; }
+      subGate = r.msg; hap('err');
+      if (curCase && curCase.id === 'free') renderAct();
+    });
+  }
+  function runCase(c){
     if (busy) return;
     if (c.id === 'free') { if (wait(c) > 0) return; }
     else if (S.bal < c.cost) { toast('Недостаточно звёзд'); return; }
