@@ -882,9 +882,18 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#120A2B'); tg.setBackgroundColor('#120A2B'); } catch (e) {} }
   var $ = function(id){ return document.getElementById(id); };
-  var KEY = 'pumaup_test_v3', ST = '⭐';
+  var OLD_KEY = 'pumaup_test_v3', ST = '⭐';
+  /* Сохранение у каждого Telegram-аккаунта своё: ключ включает ID пользователя (раньше ключ был общий на всех). */
+  var UID = '';
+  try { UID = String((tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || ''); } catch (e) {}
+  var KEY = OLD_KEY + (UID ? '_' + UID : '');
   var S = { bal: 0, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now() };
-  try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+  try {
+    var raw = localStorage.getItem(KEY);
+    /* Перенос старого общего сохранения: его забирает первый открывший аккаунт, дальше оно удаляется, чтобы не размножалось. */
+    if (!raw && UID) { raw = localStorage.getItem(OLD_KEY); if (raw) { localStorage.setItem(KEY, raw); localStorage.removeItem(OLD_KEY); } }
+    if (raw) S = Object.assign(S, JSON.parse(raw));
+  } catch (e) {}
   function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
   function fmt(n){ return Math.round(n).toLocaleString('ru-RU'); }
   function rnd(n){ return Math.floor(Math.random() * n); }
