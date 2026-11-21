@@ -2173,12 +2173,12 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }
     mpPrev(game, s);
   }
-  /* previous round (who bet what, how it ended) and my own previous bets */
+  /* previous round: who bet what and how it ended */
   var mpSig = {};
   function mpPrev(game, s){
     var el = $(game === 'rocket' ? 'rk-prev' : 'hr-prev'); if (!el) return;
-    var sig = JSON.stringify([s.prev, s.my]); if (mpSig[game] === sig) return; mpSig[game] = sig;
-    var rk = game === 'rocket', p = s.prev, h = '', rows = '', mr = '';
+    var sig = JSON.stringify(s.prev); if (mpSig[game] === sig) return; mpSig[game] = sig;
+    var rk = game === 'rocket', p = s.prev, h = '', rows = '';
     if (p) {
       p.bets.forEach(function(b){
         var win = rk ? !!b.cash : b.pick === p.x;
@@ -2189,12 +2189,6 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       h += '<div class="pot-h"><div><div class="t">Прошлый раунд</div><b>' + (rk ? 'x' + p.x.toFixed(2) : 'Пума №' + (p.x + 1)) + '</b></div><small>' + p.bets.length + ' игроков</small></div>' +
         (rows ? '<div class="pot-l">' + rows + '</div>' : '<div class="pot-e">Ставок не было</div>');
     }
-    (s.my || []).forEach(function(r){
-      var win = rk ? !!r.cash : r.pick === r.x, pay = Math.floor(r.bet * (rk ? (r.cash || 0) : HR_MULT));
-      mr += '<div class="pr"><span class="nm">' + (rk ? 'Взрыв x' + r.x.toFixed(2) + (r.cash ? ' · забрали x' + r.cash.toFixed(2) : '') : 'Победила №' + (r.x + 1) + ' · ваш №' + (r.pick + 1)) +
-        '</span><span class="bt">' + fmt(r.bet) + starS() + '</span><span class="st ' + (win ? 'w' : 'l') + '">' + (win ? '+' + fmt(pay) : (rk ? 'сгорела' : 'проигрыш')) + '</span></div>';
-    });
-    h += '<div class="pot-h"' + (p ? ' style="margin-top:12px"' : '') + '><div><div class="t">Мои прошлые ставки</div></div></div>' + (mr ? '<div class="pot-l">' + mr + '</div>' : '<div class="pot-e">Пока нет ставок</div>');
     el.innerHTML = h;
   }
   /* place / cancel a bet on the server first; money is moved on this device only after the server accepted it */
