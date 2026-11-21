@@ -274,6 +274,10 @@ nav{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-b
 nav button{flex:1;background:none;padding:14px 4px;border-radius:999px;font-size:15px;font-weight:600;color:var(--muted)}
 nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
 
+.uhead .help.fairbtn{margin-left:8px;display:grid;place-items:center}.help.fairbtn svg{width:20px;height:20px}.uhead .help+.fairbtn+.fast{margin-left:8px}
+.fcode{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.4;word-break:break-all;background:var(--card2);border-radius:10px;padding:8px 10px;user-select:all}
+.frow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px;align-items:center}.frow b{font-weight:600}
+.fnote{font-size:13px;line-height:1.45;color:var(--muted);margin:10px 0}.fnote a{color:var(--fg);text-decoration:underline}
 .sheetbg{position:fixed;inset:0;z-index:15;background:rgba(10,3,24,.8);display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:560px;max-height:90vh;overflow-y:auto;background:var(--bg);border:1px solid var(--line);border-bottom:0;border-radius:24px 24px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
 .sh-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -557,7 +561,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   </div>
 
   <div id="g-upgrade" hidden>
-    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-up" aria-label="Описание игры" aria-expanded="false">?</button><button class="fast" id="up-fast" type="button" role="switch" aria-checked="false" aria-label="Быстрый прокрут"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M13 5l-4 8h5l-3 6 6-8h-5z" fill="currentColor" stroke-width="1.4"/></svg></button></div>
+    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-up" aria-label="Описание игры" aria-expanded="false">?</button><button class="help fairbtn" type="button" data-fair="upgrade" aria-label="Честная игра"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button><button class="fast" id="up-fast" type="button" role="switch" aria-checked="false" aria-label="Быстрый прокрут"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M13 5l-4 8h5l-3 6 6-8h-5z" fill="currentColor" stroke-width="1.4"/></svg></button></div>
     <div class="helpbox" id="h-up" hidden>Выберите ставку (звёзды или предмет из инвентаря) и множитель. Чем больше множитель, тем ниже шанс. Колесо вращается: если стрелка остановится в зоне выигрыша, вы получите ставку, умноженную на множитель, иначе ставка сгорит. Шанс можно менять от 5% до 75%.</div>
     <div class="udial">
       <svg viewBox="0 0 320 320" role="img" aria-label="Колесо апгрейда">
@@ -614,7 +618,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   </div>
 
   <div id="g-mines" hidden>
-    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-mn" aria-label="Описание игры" aria-expanded="false">?</button></div>
+    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-mn" aria-label="Описание игры" aria-expanded="false">?</button><button class="help fairbtn" type="button" data-fair="mines" aria-label="Честная игра"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button></div>
     <div class="helpbox" id="h-mn" hidden>Поле 5×5, на нём спрятаны мины (1, 3, 5 или 10 на выбор). Открывайте клетки: каждая безопасная поднимает множитель, и чем больше мин, тем быстрее он растёт. Забрать выигрыш можно в любой момент, но если откроете мину, ставка сгорит.</div>
     <h2>Мины</h2>
     <div class="row" style="margin-bottom:12px">
@@ -638,7 +642,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   </div>
 
   <div id="g-rocket" hidden>
-    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="rk-note" aria-label="Описание игры" aria-expanded="false">?</button><button class="fast on" id="r-snd" type="button" aria-label="Звук"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path id="r-snd-w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button></div>
+    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="rk-note" aria-label="Описание игры" aria-expanded="false">?</button><button class="help fairbtn" type="button" data-fair="rocket" aria-label="Честная игра"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button><button class="fast on" id="r-snd" type="button" aria-label="Звук"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path id="r-snd-w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button></div>
     <div class="helpbox" id="rk-note" hidden></div>
     <h2>Ракета</h2>
     <div class="rk-hist" id="rk-hist"></div>
@@ -697,7 +701,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div class="panel pot" id="rk-prev" style="margin-top:12px"></div>
   </div>
   <div id="g-race" hidden>
-    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-hr" aria-label="Описание игры" aria-expanded="false">?</button></div>
+    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="h-hr" aria-label="Описание игры" aria-expanded="false">?</button><button class="help fairbtn" type="button" data-fair="race" aria-label="Честная игра"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button></div>
     <div class="helpbox" id="h-hr" hidden>Перед каждым забегом идёт приём ставок. Выберите одну из четырёх пум и сделайте ставку. Если ваша пума придёт первой, вы получите ставку x3,8, иначе ставка сгорит.</div>
     <h2>Скачки пум</h2>
     <div class="hr-hist" id="hr-hist"></div>
@@ -714,7 +718,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div class="panel pot" id="hr-prev" style="margin-top:12px"></div>
   </div>
   <div id="g-peaks" hidden>
-    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="pk-hint" aria-label="Описание игры" aria-expanded="false">?</button></div>
+    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="pk-hint" aria-label="Описание игры" aria-expanded="false">?</button><button class="help fairbtn" type="button" data-fair="peaks" aria-label="Честная игра"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button></div>
     <div class="helpbox" id="pk-hint" hidden></div>
     <h2>Горы</h2>
     <div class="pk-st" id="pk-st">Выберите ставку и начинайте подъём</div>
@@ -739,7 +743,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div id="pk-btns" hidden><button class="btn" id="pk-jump" type="button">Прыгнуть →</button><button class="btn alt" id="pk-cash" type="button">Забрать</button></div>
   </div>
   <div id="g-tower" hidden>
-    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="t-hint" aria-label="Описание игры" aria-expanded="false">?</button></div>
+    <div class="uhead"><button class="back" data-back>← Все игры</button><button class="help" type="button" data-help="t-hint" aria-label="Описание игры" aria-expanded="false">?</button><button class="help fairbtn" type="button" data-fair="tower" aria-label="Честная игра"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button></div>
     <div class="helpbox" id="t-hint" hidden></div>
     <h2>Башня</h2>
     <div class="tw-st" id="t-st">Выберите сложность и ставку</div>
@@ -863,6 +867,13 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
 </div>
 <div id="toast" role="status"></div>
 
+<div class="sheetbg" id="fair" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="fair-t">
+    <h2 id="fair-t" style="margin-top:0">Честная игра</h2>
+    <div id="fair-b"></div>
+    <button class="btn ghost" type="button" data-close="fair" style="margin-top:14px">Закрыть</button>
+  </div>
+</div>
 <script>
 (function(){
   var BOT = 'PumaUpBot';
@@ -1422,6 +1433,147 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }).catch(function(e){ toast('Сервер недоступен: ' + ((e && e.message) || e)); });
   };
   setTimeout(claimStars, 700);
+  /* ===== честная игра: сервер присылает результат, а приложение умеет пересчитать его само (тот же алгоритм, что в fair.py) ===== */
+  function fairOnline(){ return !!(API_URL && tg && tg.initData); }
+  function fairRoll(game, params){
+    if (!fairOnline()) return Promise.resolve({ local: true }); /* вне Telegram игра тестовая, результат считается на устройстве */
+    return apiPost('/api/fair/bet', { game: game, params: params }).then(function(j){
+      if (j && j.result) return j;
+      throw new Error((j && j.error) || 'fair');
+    });
+  }
+  var FE = new TextEncoder();
+  function fHex(buf){ return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  function fSha(t){ return crypto.subtle.digest('SHA-256', FE.encode(t)).then(fHex); }
+  function fHmac(key, msg){
+    return crypto.subtle.importKey('raw', FE.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+      .then(function(k){ return crypto.subtle.sign('HMAC', k, FE.encode(msg)); }).then(function(b){ return new Uint8Array(b); });
+  }
+  function fFloats(ss, cs, nonce, count){
+    var jobs = [], blocks = Math.ceil(count / 8);
+    for (var c = 0; c < blocks; c++) jobs.push(fHmac(ss, cs + ':' + nonce + ':' + c));
+    return Promise.all(jobs).then(function(ds){
+      var out = [];
+      ds.forEach(function(d){ for (var j = 0; j < 8; j++) { var o = j * 4; out.push(d[o] / 256 + d[o + 1] / 65536 + d[o + 2] / 16777216 + d[o + 3] / 4294967296); } });
+      return out.slice(0, count);
+    });
+  }
+  function fOutcome(game, p, f){
+    var i;
+    if (game === 'upgrade') return { r: f[0], win: f[0] < p.chance };
+    if (game === 'case') {
+      var t = 0; p.weights.forEach(function(w){ t += w; });
+      var r = f[0] * t;
+      for (i = 0; i < p.weights.length; i++) { r -= p.weights[i]; if (r < 0) return { index: i }; }
+      return { index: 0 };
+    }
+    if (game === 'mines') {
+      var cells = []; for (i = 0; i < 25; i++) cells.push(i);
+      for (i = 0; i < p.count; i++) { var j = i + Math.floor(f[i] * (25 - i)), x = cells[i]; cells[i] = cells[j]; cells[j] = x; }
+      return { mines: cells.slice(0, p.count).sort(function(a, b){ return a - b; }) };
+    }
+    if (game === 'tower') { var tr = []; for (i = 0; i < p.floors; i++) tr.push(Math.floor(f[i] * p.cells)); return { traps: tr }; }
+    return { rolls: f.slice(0, p.chances.length) };
+  }
+  function fSeedFloat(seed, label){ return fHmac(seed, label).then(function(d){ return parseInt(fHex(d).slice(0, 13), 16) / Math.pow(16, 13); }); }
+  function fRound(game, seed){
+    if (game === 'rocket') return fSeedFloat(seed, 'rocket').then(function(r){ return { x: Math.round(Math.min(500, Math.max(1, Math.floor(RK_RTP / (1 - r)) / 100)) * 100) / 100 }; });
+    return fSeedFloat(seed, 'race:win').then(function(r){ return { x: Math.floor(r * 4) }; });
+  }
+  function fEq(a, b){
+    if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) < 1e-9;
+    if (a && b && typeof a === 'object' && typeof b === 'object') { var ka = Object.keys(a), kb = Object.keys(b); return ka.length === kb.length && ka.every(function(k){ return fEq(a[k], b[k]); }); }
+    return a === b;
+  }
+  /* rv: { server_seed, commit, client_seed, bets: [{nonce, game, params, result}] } -> { hashOk, total, ok } */
+  function fVerifyBets(rv){
+    return fSha(rv.server_seed).then(function(h){
+      return Promise.all(rv.bets.map(function(b){
+        return fFloats(rv.server_seed, rv.client_seed, b.nonce, 25).then(function(f){ return fEq(fOutcome(b.game, b.params, f), b.result); });
+      })).then(function(rs){ return { hashOk: h === rv.commit, total: rs.length, ok: rs.filter(Boolean).length }; });
+    });
+  }
+  /* окно «Честная игра» */
+  var FS = { game: 'upgrade' }, FNAME = { upgrade: 'Апгрейд', case: 'Кейсы', mines: 'Мины', tower: 'Башня', peaks: 'Горы', rocket: 'Ракета', race: 'Скачки' };
+  function fLinks(){
+    return '<p class="fnote">Код проверки, который работает на сервере: <a href="' + API_URL + '/fair.py" target="_blank" rel="noopener">fair.py</a>. ' +
+      'Описание: <a href="https://github.com/puma719/puma-server/blob/main/FAIR.md" target="_blank" rel="noopener">FAIR.md</a>.</p>';
+  }
+  function fVerdict(v, rv){
+    var good = v.hashOk && v.ok === v.total, part = rv.bets_count > rv.bets.length;
+    return '<div class="wd-ban' + (good ? '' : ' lock') + '">' + (good
+      ? '✅ Хэш совпал' + (v.total ? ', ' + v.ok + ' из ' + v.total + ' ставок пересчитаны верно' : ', ставок на этом сиде не было') + (part ? ' (проверены первые ' + v.total + ')' : '') + '.'
+      : '⚠️ Проверка не прошла: хэш ' + (v.hashOk ? 'совпал' : 'НЕ совпал') + ', верных ставок ' + v.ok + ' из ' + v.total + '. Сохраните сид и сообщите администратору.') +
+      '<br><small>Секрет сервера:</small><div class="fcode" style="margin-top:6px">' + escH(rv.server_seed) + '</div></div>';
+  }
+  function openFair(game){ FS.game = game; openSheet('fair'); renderFair(''); }
+  function renderFair(verdict){
+    var b = $('fair-b'), g = FS.game;
+    if (!fairOnline()) {
+      b.innerHTML = '<p class="fnote">Сейчас приложение открыто вне Telegram: это тестовая игра, результаты считаются на устройстве и не проверяются. ' +
+        'В Telegram результат каждой ставки приходит с сервера и его можно пересчитать здесь.</p>'; return;
+    }
+    b.innerHTML = '<p class="fnote">Загружаем…</p>';
+    (g === 'rocket' || g === 'race' ? renderFairShared(g) : renderFairSolo(verdict)).catch(function(){ b.innerHTML = '<p class="fnote">Не удалось загрузить данные. Попробуйте позже.</p>'; });
+  }
+  function renderFairSolo(verdict){
+    return apiPost('/api/fair/state').then(function(s){
+      var h = (verdict || '') +
+        '<p class="fnote">Результат ставки считается из секрета сервера и вашего сида. Хэш секрета показан заранее, поэтому подменить результат после ставки нельзя. ' +
+        'Нажмите «Раскрыть и проверить»: сервер откроет секрет, а приложение само пересчитает все ставки.</p>' +
+        '<div class="lbl">Хэш секрета сервера</div><div class="fcode">' + escH(s.commit) + '</div>' +
+        '<div class="lbl" style="margin-top:12px">Ваш сид (можно изменить)</div><input type="text" id="fair-cs" maxlength="64" value="' + escH(s.client_seed) + '" aria-label="Ваш сид">' +
+        '<div class="fnote">Следующая ставка: №' + s.nonce + '</div>' +
+        '<button class="btn" type="button" id="fair-rot">Раскрыть и проверить</button>' +
+        '<p class="fnote">После проверки для новых ставок будет создан новый секрет.</p>';
+      if (s.bets.length) h += '<div class="lbl" style="margin-top:12px">Последние ставки</div>' + s.bets.slice(0, 10).map(function(x){
+        return '<div class="frow"><b>№' + x.nonce + '</b><span>' + (FNAME[x.game] || x.game) + '</span><span>' + new Date(x.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</span></div>'; }).join('');
+      if (s.revealed.length) h += '<div class="lbl" style="margin-top:12px">Раскрытые секреты</div>' + s.revealed.map(function(x){
+        return '<div class="frow"><span>' + x.bets_count + ' ставок · ' + new Date(x.ts * 1000).toLocaleDateString() + '</span><button class="btn sm ghost" type="button" data-fchk="' + x.id + '">Проверить</button></div>'; }).join('');
+      $('fair-b').innerHTML = h + fLinks();
+      $('fair-rot').onclick = function(){
+        var btn = this; if (btn.disabled) return; btn.disabled = true;
+        var cs = $('fair-cs').value.trim();
+        apiPost('/api/fair/rotate', { client_seed: cs || undefined }).then(function(j){
+          if (!j || !j.reveal) { toast((j && j.error) || 'Не удалось'); btn.disabled = false; return; }
+          return fVerifyBets(j.reveal).then(function(v){ hap(v.hashOk && v.ok === v.total ? 'ok' : 'err'); renderFair(fVerdict(v, j.reveal)); });
+        }).catch(function(){ toast('Сервер недоступен'); btn.disabled = false; });
+      };
+    });
+  }
+  function renderFairShared(g){
+    return Promise.all([fetch(API_URL + '/api/fair/rounds?game=' + g).then(function(r){ return r.json(); }), fetch(API_URL + '/api/fair/info').then(function(r){ return r.json(); })]).then(function(a){
+      var rounds = (a[0].rounds || []).slice(0, 12), chain = (a[1].chains || []).filter(function(c){ return c.game === g; }).pop(), cur = MP.g[g];
+      return Promise.all(rounds.map(function(r, i){
+        return Promise.all([fSha(r.seed), fRound(g, r.seed)]).then(function(x){
+          var nxt = rounds[i + 1], link = !nxt || nxt.chain !== r.chain || nxt.idx !== r.idx - 1 ? null : r.commit === nxt.seed;
+          return { r: r, ok: x[0] === r.commit && fEq(x[1].x, r.x), link: link };
+        });
+      })).then(function(res){
+        var good = res.filter(function(x){ return x.ok && x.link !== false; }).length;
+        var h = '<p class="fnote">Исход раунда определяется заранее заготовленным секретом из цепочки хэшей. Во время ставок виден только его хэш, секрет открывается после раунда, и приложение пересчитывает результат.</p>';
+        if (cur && cur.commit) h += '<div class="lbl">Хэш текущего раунда</div><div class="fcode">' + escH(cur.commit) + '</div>';
+        if (chain) h += '<div class="lbl" style="margin-top:12px">Якорь цепочки (опубликован заранее)</div><div class="fcode">' + escH(chain.anchor) + '</div>';
+        h += '<div class="wd-ban' + (good === res.length ? '' : ' lock') + '" style="margin-top:12px">' + (res.length ? (good === res.length ? '✅ Проверено раундов: ' + good + ' из ' + res.length + '. Хэши совпали, результаты верны.' : '⚠️ Верных раундов ' + good + ' из ' + res.length + '. Сообщите администратору.') : 'Раундов пока нет.') + '</div>';
+        h += res.map(function(x){
+          var r = x.r;
+          return '<div class="frow"><span>' + (g === 'rocket' ? 'x' + r.x.toFixed(2) : 'Пума ' + (r.x + 1)) + '</span><span class="fcode" style="padding:2px 6px;font-size:10px">' + escH(r.seed.slice(0, 10)) + '…</span><span>' + (x.ok ? '✅' : '⚠️') + (x.link ? ' 🔗' : '') + '</span></div>';
+        }).join('');
+        h += '<p class="fnote">✅ — хэш и результат сошлись, 🔗 — раунд связан с предыдущим. Полный список с секретами: <a href="' + API_URL + '/api/fair/rounds?game=' + g + '" target="_blank" rel="noopener">открыть</a>.</p>';
+        $('fair-b').innerHTML = h + fLinks();
+      });
+    });
+  }
+  document.addEventListener('click', function(e){
+    var f = e.target.closest('[data-fair]'); if (f) { openFair(f.dataset.fair); return; }
+    var c = e.target.closest('[data-fchk]'); if (!c || c.disabled) return;
+    c.disabled = true;
+    apiPost('/api/fair/bets', { seed_id: +c.dataset.fchk }).then(function(rv){
+      if (!rv || !rv.server_seed) { toast('Не удалось'); c.disabled = false; return; }
+      return fVerifyBets(rv).then(function(v){ renderFair(fVerdict(v, rv)); });
+    }).catch(function(){ toast('Сервер недоступен'); c.disabled = false; });
+  });
+  $('fair').addEventListener('click', function(e){ if (e.target === $('fair')) closeSheet('fair'); });
 
   /* withdrawal (TEST: only creates a request, nothing is paid out) */
   var WD_MIN = 1050, WD_CONTACT = '@PumaSender';
@@ -1614,9 +1766,11 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       if (bet > S.bal) { toast('Недостаточно звёзд'); return; }
     }
     spinning = true; $('up-go').disabled = true; lockUp(true);
+    var c = chance(upM);
+    fairRoll('upgrade', { chance: c }).then(function(fr){
     $('up-res').textContent = ''; $('up-res').className = 'res';
     if (used) { S.inv[used]--; save(); renderInv(); } else add(-bet); tb(bet);
-    var c = chance(upM), r = Math.random(), win = r < c, ang;
+    var r = fr.local ? Math.random() : fr.result.r, win = r < c, ang;
     /* the win zone is centered at the bottom (pointer start), half-width c*180 deg */
     if (win) ang = (r / c - 0.5) * c * 360;
     else ang = c * 180 + ((r - c) / (1 - c)) * (360 - c * 360);
@@ -1648,12 +1802,13 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       if (tgt && win) upTarget = null;
       save(); renderStats(); updUp();
     }, quick ? 700 : 3300);
+    }, function(){ toast('Нет связи с сервером, ставка не принята'); hap('err'); spinning = false; $('up-go').disabled = false; lockUp(false); });
   };
 
   /* mines */
   var GEM = '<svg viewBox="0 0 24 24"><path d="M12 3l8 6-8 12L4 9z" fill="#2FE08A" stroke="#0B3D2A" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 9h16M9 9l3 12M15 9l-3 12" stroke="#0B3D2A" stroke-width="1" fill="none"/></svg>';
   var BOMB = '<svg viewBox="0 0 24 24"><circle cx="11" cy="14" r="7" fill="#1A0B2E" stroke="#FF4D6D" stroke-width="1.6"/><path d="M15 8l3-3M18 3v2M20 5h-2" stroke="#FFD23F" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
-  var mOn = false, mBet = 0, mCnt = 3, mSet = null, mOpen = 0;
+  var mOn = false, mBet = 0, mCnt = 3, mSet = null, mOpen = 0, mWait = false;
   function buildGrid(){
     var g = $('m-grid'); g.innerHTML = '';
     for (var i = 0; i < 25; i++) {
@@ -1678,17 +1833,22 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     updMines(); hap('light');
   });
   $('m-go').onclick = function(){
-    if (mOn) return;
+    if (mOn || mWait) return;
     var bet = parseInt($('m-bet').value) || 0;
     if (bet < 1) { toast('Введите ставку'); return; }
     if (bet > S.bal) { toast('Недостаточно звёзд'); return; }
-    add(-bet); tb(bet); mBet = bet; mOn = true; mOpen = 0; mSet = {};
-    var n = 0; while (n < mCnt) { var k = rnd(25); if (!mSet[k]) { mSet[k] = 1; n++; } }
-    buildGrid();
-    document.querySelectorAll('.tile').forEach(function(t){ t.disabled = false; });
-    $('m-go').hidden = true; $('m-cash').hidden = false; lockMines(true);
-    $('m-res').textContent = ''; $('m-res').className = 'res';
-    updMines(); hap('medium');
+    mWait = true;
+    fairRoll('mines', { count: mCnt }).then(function(fr){
+      mWait = false;
+      add(-bet); tb(bet); mBet = bet; mOn = true; mOpen = 0; mSet = {};
+      if (fr.local) { var n = 0; while (n < mCnt) { var k = rnd(25); if (!mSet[k]) { mSet[k] = 1; n++; } } }
+      else fr.result.mines.forEach(function(k){ mSet[k] = 1; });
+      buildGrid();
+      document.querySelectorAll('.tile').forEach(function(t){ t.disabled = false; });
+      $('m-go').hidden = true; $('m-cash').hidden = false; lockMines(true);
+      $('m-res').textContent = ''; $('m-res').className = 'res';
+      updMines(); hap('medium');
+    }, function(){ mWait = false; toast('Нет связи с сервером, ставка не принята'); hap('err'); });
   };
   function finishMines(win, w){
     mOn = false;
@@ -1854,7 +2014,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function openCasePage(c){
     curCase = c; sub = 'case'; subGate = null; render();
     var isFree = c.id === 'free', rmc = rarMap(c);
-    var h = '<button class="back" id="case-back">← Назад</button>' +
+    var h = '<button class="back" id="case-back">← Назад</button><button class="btn sm ghost" type="button" data-fair="case" style="margin-left:8px">Честная игра</button>' +
       '<div class="panel dayp"><div class="dhead">' + boxArt(c.c1, c.c2).replace('<img class="bx"', '<img') + '<h2>' + c.name + '</h2></div>' +
       '<div class="roul" id="roul"><div class="mk t"></div><div class="strip" id="strip"></div><div class="frame"></div><div class="mk b"></div></div>' +
       '<div id="case-act"></div></div>' +
@@ -1931,10 +2091,17 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     if (c.id === 'free') { if (wait(c) > 0) return; }
     else if (S.bal < c.cost) { toast('Недостаточно звёзд'); return; }
     busy = true;
+    var g0 = $('case-go'); if (g0) g0.disabled = true;
+    var pl0 = c.loot.filter(function(l){ return l[1] > 0; });
+    fairRoll('case', { weights: pl0.map(function(l){ return l[1]; }) }).then(function(fr){
+      runCase2(c, fr.local ? pick(c) : pl0[fr.result.index][0]);
+    }, function(){ busy = false; if (g0) g0.disabled = false; toast('Нет связи с сервером, ставка не принята'); hap('err'); });
+  }
+  function runCase2(c, prize){
     if (c.id === 'free') S.daily = Date.now(); else { add(-c.cost); tb(c.cost); }
     save(); lastCost = c.cost;
     var g = $('case-go'); if (g) g.disabled = true;
-    var prize = pick(c), p = pool(c), ids = [], i;
+    var p = pool(c), ids = [], i;
     for (i = 0; i < 40; i++) ids.push(p[rnd(p.length)]);
     ids[32] = prize;
     var strip = $('strip');
@@ -2554,7 +2721,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   setInterval(function(){ if (sub === 'race') hrPot(); }, 200);
 
   /* tower */
-  var tOn = false, tCells = 3, tBet = 0, tFloor = 0, tTrap = [], tMax = 8;
+  var tOn = false, tCells = 3, tBet = 0, tFloor = 0, tTrap = [], tMax = 8, tWait = false;
   var T_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#2FE08A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var T_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="#FF4D6D" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   function tMult(k){ return k ? Math.pow(tCells / (tCells - 1), k) * 0.86 : 1; }
@@ -2600,13 +2767,17 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     tFloor = 0; $('t-go').textContent = 'Начать игру'; $('t-st').textContent = 'Выберите сложность и ставку'; tBuild(); hap('light');
   });
   $('t-go').onclick = function(){
-    aud(); if (tOn) return;
+    aud(); if (tOn || tWait) return;
     var bet = parseInt($('t-bet').value) || 0;
     if (bet < 1) { toast('Введите ставку'); return; }
     if (bet > S.bal) { toast('Недостаточно звёзд'); hap('err'); return; }
-    add(-bet); tb(bet); tBet = bet; tOn = true; tFloor = 0; tTrap = [];
-    for (var i = 0; i < tMax; i++) tTrap.push(rnd(tCells));
-    $('t-bet').disabled = true; tBuild(); tMark(); hap('medium'); beep(660, .06, 'triangle', .2);
+    tWait = true;
+    fairRoll('tower', { cells: tCells, floors: tMax }).then(function(fr){
+      tWait = false;
+      add(-bet); tb(bet); tBet = bet; tOn = true; tFloor = 0; tTrap = [];
+      if (fr.local) { for (var i = 0; i < tMax; i++) tTrap.push(rnd(tCells)); } else tTrap = fr.result.traps.slice();
+      $('t-bet').disabled = true; tBuild(); tMark(); hap('medium'); beep(660, .06, 'triangle', .2);
+    }, function(){ tWait = false; toast('Нет связи с сервером, ставка не принята'); hap('err'); });
   };
   $('t-grid').addEventListener('click', function(e){
     var b = e.target.closest('button'); if (!b || !tOn) return;
@@ -2623,7 +2794,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
 
 
   /* peaks: the puma climbs peak after peak. Each jump is riskier than the last; a miss burns the bet. */
-  var pkOn = false, pkAnimOn = false, pkN = 10, pkK = 0, pkBet = 0, PK_GAP = 96, PK_X0 = 70, PK_H = 280;
+  var pkOn = false, pkAnimOn = false, pkN = 10, pkK = 0, pkBet = 0, PK_GAP = 96, PK_X0 = 70, PK_H = 280, pkWait = false, pkRolls = null;
   var PK_CH_R = [0.78, 0.75, 0.72, 0.69, 0.66, 0.63, 0.60, 0.57, 0.54, 0.51], PK_M_R = [1, 1.05, 1.15, 1.35, 1.60, 1.95, 2.40, 3.00, 3.80, 4.80, 6.00];
   function pkMk(ch, rtp){ var m = [1], p = 1; ch.forEach(function(c){ p *= c; m.push(Math.max(1.05, Math.round(rtp / p * 100) / 100)); }); return m; }
   /* 3 difficulties. Ridge is the original one. Trail is easier, Peak (volcano) is harder with bigger multipliers. */
@@ -2776,7 +2947,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }
   function pkJump(){
     if (!pkOn || pkAnimOn) return;
-    var ok = Math.random() < pkChance(pkK + 1), a = pkPos(pkK), b = pkPos(pkK + 1);
+    var ok = (pkRolls ? pkRolls[pkK] : Math.random()) < pkChance(pkK + 1), a = pkPos(pkK), b = pkPos(pkK + 1);
     pkAnimOn = true; pkBtns(); hap('light'); beep(520, .08, 'triangle', .15);
     if (ok) {
       pkAnimate(520, function(t){ pkSet(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t - Math.sin(Math.PI * t) * 46); }, function(){
@@ -2804,13 +2975,17 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }
   }
   $('pk-go').onclick = function(){
-    aud(); if (pkOn) return;
+    aud(); if (pkOn || pkWait) return;
     var bet = parseInt($('pk-bet').value) || 0;
     if (bet < 1) { toast('Введите ставку'); return; }
     if (bet > S.bal) { toast('Недостаточно звёзд'); hap('err'); return; }
     if (betTooBig(bet)) return;
-    add(-bet); tb(bet); pkBet = bet; pkOn = true; pkK = 0; pkAnimOn = false;
-    $('pk-bet').disabled = true; pkBuild(); pkMark(); pkBtns(); hap('medium'); beep(660, .06, 'triangle', .2);
+    pkWait = true;
+    fairRoll('peaks', { chances: PK_CH.slice() }).then(function(fr){
+      pkWait = false; pkRolls = fr.local ? null : fr.result.rolls.slice();
+      add(-bet); tb(bet); pkBet = bet; pkOn = true; pkK = 0; pkAnimOn = false;
+      $('pk-bet').disabled = true; pkBuild(); pkMark(); pkBtns(); hap('medium'); beep(660, .06, 'triangle', .2);
+    }, function(){ pkWait = false; toast('Нет связи с сервером, ставка не принята'); hap('err'); });
   };
   $('pk-jump').onclick = function(){ aud(); pkJump(); };
   $('pk-cash').onclick = function(){ aud(); pkCash(); };
