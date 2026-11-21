@@ -1260,7 +1260,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       return a;
     }).catch(function(){ return 0; });
   }
-  var wdSyncing = false, WD_ST = { pending: 'В обработке', paid: 'Выплачен', cancelled: 'Отменён' };
+  var wdSyncing = false, wdBusy = false, WD_ST = { pending: 'В обработке', paid: 'Выплачен', cancelled: 'Отменён' };
   /* requests made before server tracking exist only on this device: register each of them on the server once (the stars were already taken from the balance,
      the server only starts tracking the request, so it can be cancelled or marked as paid). A rejected one is marked and not retried. */
   function wdRegisterLegacy(){
@@ -1274,10 +1274,13 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     return p;
   }
   function wdSync(){
-    if (!wdOnline() || wdSyncing) return Promise.resolve();
+    if (!wdOnline() || wdSyncing || wdBusy) return Promise.resolve(); /* wdBusy: a new request is being created right now */
     wdSyncing = true;
     return wdRegisterLegacy().then(function(){ return apiPost('/api/withdrawals'); }).then(function(j){
-      var changed = false, jobs = [];
+      /* one request = one history entry: drop repeated entries with the same server number */
+      var seen = {}, n0 = (S.ops || []).length;
+      S.ops = (S.ops || []).filter(function(x){ if (x.k !== 'wd' || !x.id) return true; if (seen[x.id]) return false; seen[x.id] = 1; return true; });
+      var changed = S.ops.length !== n0, jobs = [];
       ((j && j.items) || []).forEach(function(it){
         var op = (S.ops || []).filter(function(x){ return x.k === 'wd' && x.id === it.id; })[0];
         if (!op) {
@@ -1645,17 +1648,20 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     if (a < WD_MIN) { toast('Минимальная сумма: ' + fmt(WD_MIN)); return; }
     if (a > S.bal) { toast('Недостаточно звёзд'); hap('err'); return; }
     function done(id){
-      add(-a); opLog('wd', a, 'В обработке', id); renderStats(); hap('ok');
+      add(-a);
+      if (id && (S.ops || []).some(function(x){ return x.k === 'wd' && x.id === id; })) save(); /* a background sync already added this request */
+      else opLog('wd', a, 'В обработке', id);
+      renderStats(); hap('ok');
       $('wd-av').textContent = fmt(S.bal) + ' ' + ST; $('wd-amt').value = '';
       var b = $('wd-ban'); b.hidden = false; b.className = 'wd-ban';
       b.innerHTML = '✅ Заявка на ' + fmt(a) + ' ' + ST + ' создана.<br>Отправьте сообщение <b>' + WD_CONTACT + '</b> и ожидайте вывод в течение 2 недель.<br>Пока заявка «В обработке», её можно отменить в истории операций.';
     }
     if (!wdOnline()) { done(); return; } /* outside Telegram: test mode, nothing is paid out */
-    var btn = $('wd-go'); if (btn.disabled) return; btn.disabled = true;
+    var btn = $('wd-go'); if (btn.disabled) return; btn.disabled = true; wdBusy = true;
     apiPost('/api/withdraw', { amount: a }).then(function(j){
       if (j && j.withdrawal) done(j.withdrawal.id);
       else { toast((j && j.error) || 'Не удалось создать заявку'); hap('err'); }
-    }).catch(function(){ toast('Сервер недоступен, попробуйте ещё раз'); }).then(function(){ btn.disabled = false; });
+    }).catch(function(){ toast('Сервер недоступен, попробуйте ещё раз'); }).then(function(){ btn.disabled = false; wdBusy = false; });
   };
 
   /* bet chips */
