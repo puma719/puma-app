@@ -793,7 +793,6 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div class="linkbox" style="margin-top:0"><input type="text" id="promo" placeholder="Введите код" autocomplete="off" aria-label="Промокод"><button class="btn sm" id="promoGo">Ввести</button></div>
     <div style="color:var(--muted);font-size:12px">Каждый код можно активировать один раз на аккаунт, число активаций ограничено. У некоторых кодов есть условие по сумме пополнения.</div>
   </div>
-  <button class="btn ghost" id="p-reset">Сбросить прогресс</button>
   <p class="note">Тестовая версия. Все звёзды виртуальные, вывода нет.</p>
 </section>
 
@@ -2894,13 +2893,6 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       [$('p-ava')].forEach(function(el){ var im = document.createElement('img'); im.src = u.photo_url; im.alt = ''; el.textContent = ''; el.appendChild(im); });
     } else { $('p-ava').textContent = ini; }
   })();
-  var resetArmed = false;
-  $('p-reset').onclick = function(){
-    if (!resetArmed) { resetArmed = true; $('p-reset').textContent = 'Нажмите ещё раз для сброса'; setTimeout(function(){ resetArmed = false; $('p-reset').textContent = 'Сбросить прогресс'; }, 3000); return; }
-    S = { bal: 0, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now() }; save();
-    setFast(false, false); renderStats(); renderCases(); renderRaffles(); resetArmed = false; $('p-reset').textContent = 'Сбросить прогресс'; toast('Прогресс сброшен');
-  };
-
   document.addEventListener('click', function(e){
     var b = e.target.closest('[data-help]'); if (!b) return;
     var box = document.getElementById(b.dataset.help); if (!box) return;
