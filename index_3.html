@@ -2795,7 +2795,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var tOn = false, tCells = 3, tBet = 0, tFloor = 0, tTrap = [], tMax = 8, tWait = false;
   var T_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#2FE08A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var T_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="#FF4D6D" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  function tMult(k){ return k ? Math.pow(tCells / (tCells - 1), k) * 0.86 : 1; }
+  function tMult(k){ return k ? Math.pow(tCells / (tCells - 1), k) * 0.77 : 1; }
   function tBuild(){
     var h = '', f, c;
     for (f = tMax - 1; f >= 0; f--) {
@@ -2866,15 +2866,15 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
 
   /* peaks: the puma climbs peak after peak. Each jump is riskier than the last; a miss burns the bet. */
   var pkOn = false, pkAnimOn = false, pkN = 10, pkK = 0, pkBet = 0, PK_GAP = 96, PK_X0 = 70, PK_H = 280, pkWait = false, pkRolls = null;
-  var PK_CH_R = [0.78, 0.75, 0.72, 0.69, 0.66, 0.63, 0.60, 0.57, 0.54, 0.51], PK_M_R = [1, 1.05, 1.15, 1.35, 1.60, 1.95, 2.40, 3.00, 3.80, 4.80, 6.00];
-  function pkMk(ch, rtp){ var m = [1], p = 1; ch.forEach(function(c){ p *= c; m.push(Math.max(1.05, Math.round(rtp / p * 100) / 100)); }); return m; }
+  var PK_CH_R = [0.78, 0.75, 0.72, 0.69, 0.66, 0.63, 0.60, 0.57, 0.54, 0.51], PK_M_R = [1, 1.02, 1.04, 1.22, 1.44, 1.76, 2.16, 2.70, 3.42, 4.32, 5.40];
+  function pkMk(ch, rtp){ var m = [1], p = 1; ch.forEach(function(c){ p *= c; m.push(Math.max(1.02, Math.round(rtp / p * 100) / 100)); }); return m; }
   /* 3 difficulties. Ridge is the original one. Trail is easier, Peak (volcano) is harder with bigger multipliers. */
   var PK_MODES = {
     trail: { name: 'Тропа', ch: [0.92, 0.91, 0.89, 0.88, 0.86, 0.85, 0.83, 0.82, 0.80, 0.79] },
     ridge: { name: 'Хребет', ch: PK_CH_R, m: PK_M_R },
     peak: { name: 'Вершина', ch: [0.74, 0.70, 0.66, 0.62, 0.58, 0.54, 0.50, 0.46] }
   };
-  PK_MODES.trail.m = pkMk(PK_MODES.trail.ch, 0.80); PK_MODES.peak.m = pkMk(PK_MODES.peak.ch, 0.80);
+  PK_MODES.trail.m = pkMk(PK_MODES.trail.ch, 0.72); PK_MODES.peak.m = pkMk(PK_MODES.peak.ch, 0.72);
   var pkMode = 'ridge', PK_CH = PK_MODES.ridge.ch, PK_M = PK_MODES.ridge.m;
   function pkMult(k){ return PK_M[Math.max(0, Math.min(k, pkN))]; }
   function pkChance(k){ return PK_CH[Math.max(0, Math.min(k, pkN)) - 1] || PK_CH[0]; }
