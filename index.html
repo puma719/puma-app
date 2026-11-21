@@ -788,6 +788,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div class="lbl">NFT в боте</div>
     <div id="nft-bot-list"><div class="empty">Пока пусто.</div></div>
     <div id="nft-bot-how" style="color:var(--muted);font-size:12px;margin-top:10px"></div>
+    <button class="btn sm" id="nft-send" type="button" style="margin-top:10px">Отправить NFT</button>
   </div>
   <div class="panel">
     <div class="lbl">Промокод</div>
@@ -2872,10 +2873,16 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     el.innerHTML = NFTB.items.length ? NFTB.items.map(function(x){
       return '<div class="inv">' + svg('nft') + '<div class="nm">' + escH(x.base) + ' #' + escH(x.num) + '<small>' + (x.model ? escH(x.model) + ' · ' : '') + new Date(x.ts * 1000).toLocaleDateString('ru-RU') + '</small></div></div>';
     }).join('') : '<div class="empty">Пока пусто.</div>';
-    $('nft-bot-how').textContent = NFTB.account
-      ? 'Чтобы закинуть NFT, отправьте его подарком на аккаунт ' + NFTB.account + '. Он сразу появится здесь.'
-      : 'Чтобы закинуть NFT, отправьте его подарком на аккаунт бота. Адрес появится здесь после подключения аккаунта.';
+    $('nft-bot-how').textContent = 'Нажмите «Отправить NFT»: откроется чат с ' + (NFTB.account || NFT_ACC) + ', в сообщении уже будет ваш ID. Отправьте сообщение, затем подарите NFT в этом чате. NFT зачисляется вручную после проверки подарка.';
   }
+  var NFT_ACC = '@PumaSender';
+  $('nft-send').onclick = function(){
+    var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user, uid = u && u.id;
+    if (!uid) { toast('Откройте приложение из Telegram'); return; }
+    var acc = (NFTB.account || NFT_ACC).replace('@', '');
+    var link = 'https://t.me/' + acc + '?text=' + encodeURIComponent('Хочу зачислить NFT. Мой ID: ' + uid + (u.username ? ' (@' + u.username + ')' : ''));
+    if (tg.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
+  };
   function nftSync(){
     if (!API_URL || !tg || !tg.initData) return;
     apiPost('/api/nfts', {}).then(function(j){ if (j && j.items) { NFTB = { items: j.items, account: j.account || '' }; renderNftBot(); } }).catch(function(){});
