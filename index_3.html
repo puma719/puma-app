@@ -1219,16 +1219,58 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px"><span>' + (x.k === 'dep' ? 'Пополнение' : 'Вывод') + (x.st ? ' · ' + x.st : '') + '<small style="display:block;color:var(--muted)">' + ds + '</small></span><span style="display:flex;align-items:center;gap:8px">' + (x.k === 'wd' && x.st === 'В обработке' ? '<button class="btn sm ghost" type="button" data-wdcancel="' + x.t + '">Отменить</button>' : '') + '<b style="color:' + (x.k === 'dep' ? 'var(--green)' : 'var(--fg)') + (x.st === 'Отменён' ? ';text-decoration:line-through;opacity:.6' : '') + '">' + (x.k === 'dep' ? '+' : '−') + fmt(x.a) + ' ' + ST + '</b></span></div>';
     }).join('') : '<div class="empty">Операций пока нет.</div>';
   }
-  /* cancel a withdrawal request that is still being processed: open a chat with the sender account, the player's ID is already in the message */
+  /* cancel a withdrawal request that is still being processed.
+     - request known to the server (op.id): the server cancels it (only while it is not paid) and the stars come back once
+     - old request made before server tracking (no op.id) inside Telegram: open a chat with the sender account, the player's ID is in the message
+     - outside Telegram (test mode, nothing is paid): refund locally */
   $('ops-list').addEventListener('click', function(e){
     var b = e.target.closest('[data-wdcancel]'); if (!b) return;
     var t = +b.dataset.wdcancel, op = (S.ops || []).filter(function(x){ return x.k === 'wd' && x.t === t && x.st === 'В обработке'; })[0];
     if (!op) return;
+    if (op.id && wdOnline()) {
+      if (b.disabled) return; b.disabled = true;
+      apiPost('/api/withdraw/cancel', { id: op.id }).then(function(j){
+        if (j && j.status === 'cancelled') { op.st = 'Отменён'; save(); renderStats(); return wdRefund(op.id); }
+        toast((j && j.error) || 'Не удалось отменить вывод'); hap('err'); return wdSync();
+      }).catch(function(){ toast('Сервер недоступен, попробуйте ещё раз'); b.disabled = false; });
+      return;
+    }
     var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user, uid = u && u.id;
-    if (!uid) { toast('Откройте приложение из Telegram'); return; }
+    if (!uid) { op.st = 'Отменён'; add(op.a); save(); renderStats(); hap('ok'); toast('Вывод отменён: +' + fmt(op.a) + ' ' + ST); return; }
     var link = 'https://t.me/' + WD_CONTACT.replace('@', '') + '?text=' + encodeURIComponent('Хочу отменить вывод ' + fmt(op.a) + ' ' + ST + '. Мой ID: ' + uid + (u.username ? ' (@' + u.username + ')' : ''));
     if (tg.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
   });
+  /* withdrawals: the status lives on the server; the app syncs it and takes the one-time refund of a cancelled request */
+  function wdOnline(){ return !!(API_URL && tg && tg.initData); }
+  function wdRefund(id){
+    return apiPost('/api/withdraw/refund', { id: id }).then(function(j){
+      var a = (j && j.refund) | 0;
+      if (a > 0) { add(a); hap('ok'); toast('Вывод отменён: +' + fmt(a) + ' ' + ST); }
+      return a;
+    }).catch(function(){ return 0; });
+  }
+  var wdSyncing = false, WD_ST = { pending: 'В обработке', paid: 'Выплачен', cancelled: 'Отменён' };
+  function wdSync(){
+    if (!wdOnline() || wdSyncing) return Promise.resolve();
+    wdSyncing = true;
+    return apiPost('/api/withdrawals').then(function(j){
+      var changed = false, jobs = [];
+      ((j && j.items) || []).forEach(function(it){
+        var op = (S.ops || []).filter(function(x){ return x.k === 'wd' && x.id === it.id; })[0];
+        if (!op) {
+          if (it.status !== 'pending' && (it.status !== 'cancelled' || it.refunded)) return; /* nothing left to do for it */
+          S.ops = S.ops || []; op = { k: 'wd', a: it.amount, t: it.ts * 1000, st: '', id: it.id }; S.ops.push(op);
+          S.ops.sort(function(x, y){ return y.t - x.t; }); S.ops = S.ops.slice(0, 30); changed = true;
+        }
+        if (WD_ST[it.status] && op.st !== WD_ST[it.status]) { op.st = WD_ST[it.status]; changed = true; }
+        if (it.status === 'cancelled' && !it.refunded) jobs.push(wdRefund(it.id));
+      });
+      if (changed) { save(); renderStats(); }
+      return Promise.all(jobs);
+    }).catch(function(){}).then(function(){ wdSyncing = false; });
+  }
+  setTimeout(wdSync, 900);
+  setInterval(function(){ if (!document.hidden && !$('v-profile').hidden) wdSync(); }, 5000);
   function renderStats(){
     $('p-played').textContent = S.played; $('p-best').textContent = fmt(S.best);
     $('p-turn').textContent = fmt(S.turn || 0); $('p-max').textContent = fmt(S.maxWin || 0); $('p-maxg').textContent = S.maxGame ? 'в игре «' + S.maxGame + '»' : 'пока нет';
@@ -1237,7 +1279,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function add(n){ S.bal += n; save(); renderBal(); }
   function tb(n){ S.turn = (S.turn || 0) + n; save(); }
   function tw(g, w){ if (w > (S.maxWin || 0)) { S.maxWin = w; S.maxGame = g; save(); } }
-  function opLog(k, a, st){ S.ops = S.ops || []; S.ops.unshift({ k: k, a: a, t: Date.now(), st: st || '' }); S.ops = S.ops.slice(0, 30); save(); }
+  function opLog(k, a, st, id){ S.ops = S.ops || []; var o = { k: k, a: a, t: Date.now(), st: st || '' }; if (id) o.id = id; S.ops.unshift(o); S.ops = S.ops.slice(0, 30); save(); }
   /* operations history: collapsible, choice is remembered on this device */
   var opsOpen = true;
   try { opsOpen = localStorage.getItem('pumaup_ops_open') !== '0'; } catch (e) {}
@@ -1430,7 +1472,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     if (S.bal >= WD_MIN) { b.className = 'wd-ban'; b.innerHTML = '✅ Звёзд достаточно для вывода.<br>Отправьте сообщение <b>' + WD_CONTACT + '</b> и ожидайте вывод в течение 2 недель.'; }
     else { b.className = 'wd-ban lock'; b.textContent = 'Вывод доступен от ' + fmt(WD_MIN) + ' ' + ST + '. Не хватает ещё ' + fmt(WD_MIN - S.bal) + '.'; }
   }
-  function openWd(){ $('wd-av').textContent = fmt(S.bal) + ' ' + ST; $('wd-amt').value = ''; wdBanner(); $('wd-note').textContent = 'Минимум ' + fmt(WD_MIN) + ' ' + ST + '. Заявка сохраняется в истории, автоматической выплаты нет.'; openSheet('wd'); }
+  function openWd(){ $('wd-av').textContent = fmt(S.bal) + ' ' + ST; $('wd-amt').value = ''; wdBanner(); $('wd-note').textContent = 'Минимум ' + fmt(WD_MIN) + ' ' + ST + '. Заявка сохраняется в истории, автоматической выплаты нет. Пока она «В обработке», её можно отменить.'; openSheet('wd'); }
   $('p-dep').onclick = openTopup; $('p-wd').onclick = openWd;
   $('wd').addEventListener('click', function(e){ if (e.target === $('wd')) closeSheet('wd'); });
   $('wd-amt').addEventListener('input', function(){ if (S.bal >= WD_MIN) wdBanner(); });
@@ -1438,10 +1480,18 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     var a = parseInt($('wd-amt').value) || 0;
     if (a < WD_MIN) { toast('Минимальная сумма: ' + fmt(WD_MIN)); return; }
     if (a > S.bal) { toast('Недостаточно звёзд'); hap('err'); return; }
-    add(-a); opLog('wd', a, 'В обработке'); renderStats(); hap('ok');
-    $('wd-av').textContent = fmt(S.bal) + ' ' + ST; $('wd-amt').value = '';
-    var b = $('wd-ban'); b.hidden = false; b.className = 'wd-ban';
-    b.innerHTML = '✅ Заявка на ' + fmt(a) + ' ' + ST + ' создана.<br>Отправьте сообщение <b>' + WD_CONTACT + '</b> и ожидайте вывод в течение 2 недель.';
+    function done(id){
+      add(-a); opLog('wd', a, 'В обработке', id); renderStats(); hap('ok');
+      $('wd-av').textContent = fmt(S.bal) + ' ' + ST; $('wd-amt').value = '';
+      var b = $('wd-ban'); b.hidden = false; b.className = 'wd-ban';
+      b.innerHTML = '✅ Заявка на ' + fmt(a) + ' ' + ST + ' создана.<br>Отправьте сообщение <b>' + WD_CONTACT + '</b> и ожидайте вывод в течение 2 недель.<br>Пока заявка «В обработке», её можно отменить в истории операций.';
+    }
+    if (!wdOnline()) { done(); return; } /* outside Telegram: test mode, nothing is paid out */
+    var btn = $('wd-go'); if (btn.disabled) return; btn.disabled = true;
+    apiPost('/api/withdraw', { amount: a }).then(function(j){
+      if (j && j.withdrawal) done(j.withdrawal.id);
+      else { toast((j && j.error) || 'Не удалось создать заявку'); hap('err'); }
+    }).catch(function(){ toast('Сервер недоступен, попробуйте ещё раз'); }).then(function(){ btn.disabled = false; });
   };
 
   /* bet chips */
