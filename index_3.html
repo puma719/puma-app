@@ -799,6 +799,11 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div class="linkbox" style="margin-top:0"><input type="text" id="promo" placeholder="Введите код" autocomplete="off" aria-label="Промокод"><button class="btn sm" id="promoGo">Ввести</button></div>
     <div style="color:var(--muted);font-size:12px">Каждый код можно активировать один раз на аккаунт, число активаций ограничено. У некоторых кодов есть условие по сумме пополнения.</div>
   </div>
+  <div class="panel">
+    <div class="lbl">Сброс прогресса</div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:10px">Обнулит баланс, инвентарь, историю операций и статистику на этом устройстве. Пополнения, заявки на вывод и промокоды на сервере не затрагиваются.</div>
+    <button class="btn alt sm" id="p-reset" type="button">Сбросить прогресс</button>
+  </div>
   <p class="note">Автоматического вывода звёзд пока нет.</p>
 </section>
 
@@ -1650,6 +1655,20 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }
   function openWd(){ $('wd-av').textContent = fmt(S.bal) + ' ' + ST; $('wd-amt').value = ''; wdBanner(); $('wd-note').textContent = 'Минимум ' + fmt(WD_MIN) + ' ' + ST + '. Заявка сохраняется в истории, автоматической выплаты нет. Пока она «В обработке», её можно отменить.'; openSheet('wd'); }
   $('p-dep').onclick = openTopup; $('p-wd').onclick = openWd;
+  /* сброс прогресса: обнуляет локальное сохранение этого аккаунта (настройки звука и быстрой анимации остаются) */
+  $('p-reset').onclick = function(){
+    if (busy) { toast('Дождитесь результата'); return; }
+    if ((S.ops || []).some(function(x){ return x.k === 'wd' && x.st === 'В обработке'; })) { toast('Сначала дождитесь или отмените заявку на вывод'); return; }
+    var msg = 'Сбросить весь прогресс? Баланс, инвентарь, история и статистика обнулятся. Это нельзя отменить.';
+    var run = function(){
+      S = { bal: 0, played: 0, best: 0, daily: 0, inv: {}, joined: {}, promo: {}, firstTop: false, dep: 0, t0: Date.now(), mute: S.mute, fast: S.fast };
+      save();
+      hap('ok');
+      location.reload();
+    };
+    if (tg && tg.showConfirm) { try { tg.showConfirm(msg, function(ok){ if (ok) run(); }); return; } catch (e) {} }
+    if (window.confirm(msg)) run();
+  };
   $('wd').addEventListener('click', function(e){ if (e.target === $('wd')) closeSheet('wd'); });
   $('wd-amt').addEventListener('input', function(){ if (S.bal >= WD_MIN) wdBanner(); });
   $('wd-go').onclick = function(){
