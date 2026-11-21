@@ -1413,7 +1413,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   setTimeout(claimStars, 700);
 
   /* withdrawal (TEST: only creates a request, nothing is paid out) */
-  var WD_MIN = 1050, WD_CONTACT = '@юз';
+  var WD_MIN = 1050, WD_CONTACT = '@PumaSender';
   function wdBanner(){
     var b = $('wd-ban'); b.hidden = false;
     if (S.bal >= WD_MIN) { b.className = 'wd-ban'; b.innerHTML = '✅ Звёзд достаточно для вывода.<br>Отправьте сообщение <b>' + WD_CONTACT + '</b> и ожидайте вывод в течение 2 недель.'; }
