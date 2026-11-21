@@ -1219,12 +1219,15 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
       return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px"><span>' + (x.k === 'dep' ? 'Пополнение' : 'Вывод') + (x.st ? ' · ' + x.st : '') + '<small style="display:block;color:var(--muted)">' + ds + '</small></span><span style="display:flex;align-items:center;gap:8px">' + (x.k === 'wd' && x.st === 'В обработке' ? '<button class="btn sm ghost" type="button" data-wdcancel="' + x.t + '">Отменить</button>' : '') + '<b style="color:' + (x.k === 'dep' ? 'var(--green)' : 'var(--fg)') + (x.st === 'Отменён' ? ';text-decoration:line-through;opacity:.6' : '') + '">' + (x.k === 'dep' ? '+' : '−') + fmt(x.a) + ' ' + ST + '</b></span></div>';
     }).join('') : '<div class="empty">Операций пока нет.</div>';
   }
-  /* cancel a withdrawal request that is still being processed: the stars go back to the balance */
+  /* cancel a withdrawal request that is still being processed: open a chat with the sender account, the player's ID is already in the message */
   $('ops-list').addEventListener('click', function(e){
     var b = e.target.closest('[data-wdcancel]'); if (!b) return;
     var t = +b.dataset.wdcancel, op = (S.ops || []).filter(function(x){ return x.k === 'wd' && x.t === t && x.st === 'В обработке'; })[0];
     if (!op) return;
-    op.st = 'Отменён'; add(op.a); save(); renderStats(); hap('ok'); toast('Вывод отменён: +' + fmt(op.a) + ' ' + ST);
+    var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user, uid = u && u.id;
+    if (!uid) { toast('Откройте приложение из Telegram'); return; }
+    var link = 'https://t.me/' + WD_CONTACT.replace('@', '') + '?text=' + encodeURIComponent('Хочу отменить вывод ' + fmt(op.a) + ' ' + ST + '. Мой ID: ' + uid + (u.username ? ' (@' + u.username + ')' : ''));
+    if (tg.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
   });
   function renderStats(){
     $('p-played').textContent = S.played; $('p-best').textContent = fmt(S.best);
