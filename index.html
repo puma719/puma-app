@@ -1261,10 +1261,22 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }).catch(function(){ return 0; });
   }
   var wdSyncing = false, WD_ST = { pending: 'В обработке', paid: 'Выплачен', cancelled: 'Отменён' };
+  /* requests made before server tracking exist only on this device: register each of them on the server once (the stars were already taken from the balance,
+     the server only starts tracking the request, so it can be cancelled or marked as paid). A rejected one is marked and not retried. */
+  function wdRegisterLegacy(){
+    var p = Promise.resolve();
+    (S.ops || []).filter(function(x){ return x.k === 'wd' && x.st === 'В обработке' && !x.id && !x.noreg; }).forEach(function(op){
+      p = p.then(function(){ return apiPost('/api/withdraw', { amount: op.a }); }).then(function(j){
+        if (j && j.withdrawal) op.id = j.withdrawal.id; else op.noreg = true;
+        save();
+      }, function(){ /* no connection: try again on the next sync */ });
+    });
+    return p;
+  }
   function wdSync(){
     if (!wdOnline() || wdSyncing) return Promise.resolve();
     wdSyncing = true;
-    return apiPost('/api/withdrawals').then(function(j){
+    return wdRegisterLegacy().then(function(){ return apiPost('/api/withdrawals'); }).then(function(j){
       var changed = false, jobs = [];
       ((j && j.items) || []).forEach(function(it){
         var op = (S.ops || []).filter(function(x){ return x.k === 'wd' && x.id === it.id; })[0];
