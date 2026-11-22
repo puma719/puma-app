@@ -2901,7 +2901,13 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var tOn = false, tCells = 3, tBet = 0, tFloor = 0, tTrap = [], tMax = 8, tWait = false;
   var T_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#2FE08A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var T_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="#FF4D6D" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  function tMult(k){ return k ? Math.pow(tCells / (tCells - 1), k) * 0.77 : 1; }
+  /* «Сложно» (2 клетки): 10 этажей, множители заданы списком, максимум x10. Остальные режимы: 8 этажей и формула. */
+  var T_HARD = [1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  function tMult(k){
+    if (!k) return 1;
+    if (tCells === 2) return T_HARD[Math.min(k, T_HARD.length) - 1];
+    return Math.pow(tCells / (tCells - 1), k) * 0.77;
+  }
   function tBuild(){
     var h = '', f, c;
     for (f = tMax - 1; f >= 0; f--) {
@@ -2940,7 +2946,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }
   $('t-mode').addEventListener('click', function(e){
     var b = e.target.closest('[data-c]'); if (!b || tOn) return;
-    tCells = parseInt(b.dataset.c); document.querySelectorAll('#t-mode button').forEach(function(x){ x.classList.toggle('on', x === b); });
+    tCells = parseInt(b.dataset.c); tMax = tCells === 2 ? T_HARD.length : 8; document.querySelectorAll('#t-mode button').forEach(function(x){ x.classList.toggle('on', x === b); });
     tFloor = 0; $('t-go').textContent = 'Начать игру'; $('t-st').textContent = 'Выберите сложность и ставку'; tBuild(); hap('light');
   });
   $('t-go').onclick = function(){
