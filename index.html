@@ -244,6 +244,16 @@ input:focus{outline:2px solid var(--orange)}
 .wait{background:var(--card2);border-radius:999px;text-align:center;padding:12px 16px;margin-top:8px}
 .wait small{display:block;color:var(--muted);font-size:14px}
 .wait b{font-family:var(--display);font-size:24px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.fr-box{background:var(--card2);border-radius:20px;padding:14px;margin-top:8px}
+.fr-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:14px;margin-bottom:8px}
+.fr-top b{color:var(--fg);font-family:var(--display);font-size:18px}
+.fr-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.fr-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#4DF0A4,#8E6BFF);transition:width .4s}
+.fr-dots{display:flex;justify-content:center;gap:10px;margin:12px 0}
+.fr-dots span{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:var(--muted)}
+.fr-dots span.on{background:#1FB873;color:#fff}
+.fr-link{display:flex;gap:8px;align-items:center}
+.fr-link input{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;color:var(--fg);padding:10px 12px;font-size:13px;font-family:var(--body)}
 .lootg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .li{background:linear-gradient(180deg,#31236F,#22165A);border:1px solid var(--line);border-radius:18px;padding:10px 8px 12px;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
 .li svg{width:62%;margin:2px auto 8px}
@@ -2046,6 +2056,61 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     cost = Math.max(step, Math.floor(cost / step) * step);
     c.loot = loot; c.cost = cost;
   });
+  /* ===== Кейс «За друзей»: пригласи FRIENDS_GOAL друзей и открой кейс с NFT (бесплатно) =====
+     Друзей зачисляете вы: S.friends = сколько всего друзей зачислено этому игроку.
+     Вручную из консоли: setFriends(5). С сервера: вызовите setFriends(число) после ответа сервера.
+     Каждые FRIENDS_GOAL зачисленных друзей дают одно открытие (S.friendsClaims считает уже открытые). */
+  var FRIENDS_GOAL = 5;
+  (function(){
+    /* призы: дешёвые NFT, чем дешевле — тем чаще выпадает (как в кейсе «NFT Новичок») */
+    var ids = ['candy2025', 'surprisebox', 'tamagadget', 'xmaswreath', 'poop', 'lantern', 'cozysocks', 'santahat', 'snowglobe'];
+    var loot = ids.map(function(x){ return ['g_' + x, 1e9 / Math.pow(ITEMS['g_' + x].v, 2.5)]; });
+    CASES.push({ id: 'friends', name: 'За друзей', list: 'За друзей', cost: 0, c1: '#4DA3FF', c2: '#7A3BF0', friends: true, loot: loot });
+  })();
+  function friendsCount(){ return Math.min(FRIENDS_GOAL, Math.max(0, (S.friends | 0) - (S.friendsClaims | 0) * FRIENDS_GOAL)); }
+  function friendsLink(){ return 'https://t.me/' + BOT + (UID ? '?start=ref_' + UID : ''); }
+  window.setFriends = function(n){
+    S.friends = Math.max(0, n | 0); save(); renderCases();
+    if (curCase && curCase.id === 'friends' && $('case-act')) renderAct();
+  };
+  function friendsPrice(){
+    var n = friendsCount();
+    return '<span class="cprice free">' + (n >= FRIENDS_GOAL ? 'Открыть' : n + '/' + FRIENDS_GOAL + ' друзей') + '</span>';
+  }
+  function renderFriendsAct(){
+    var n = friendsCount(), ok = n >= FRIENDS_GOAL, dots = '';
+    for (var i = 0; i < FRIENDS_GOAL; i++) dots += '<span class="' + (i < n ? 'on' : '') + '">' + (i < n ? '✓' : i + 1) + '</span>';
+    $('case-act').innerHTML =
+      '<div class="fr-box"><div class="fr-top"><span>Приглашено друзей</span><b>' + n + ' / ' + FRIENDS_GOAL + '</b></div>' +
+      '<div class="fr-bar"><i style="width:' + (n / FRIENDS_GOAL * 100) + '%"></i></div><div class="fr-dots">' + dots + '</div>' +
+      '<div class="fr-link"><input id="fr-link" type="text" readonly value="' + escH(friendsLink()) + '"><button class="btn sm vio" id="fr-copy" type="button">Копировать</button></div></div>' +
+      '<button class="btn ghost" id="fr-share" type="button" style="margin-top:10px">Поделиться в Telegram</button>' +
+      '<button class="btn alt" id="case-go" type="button" style="margin-top:10px"' + (ok ? '' : ' disabled') + '>' + (ok ? 'Открыть бесплатно' : 'Откроется после ' + FRIENDS_GOAL + ' друзей') + '</button>';
+    var g = $('case-go'); if (g) g.onclick = function(){ startCase(curCase); };
+  }
+  function copyFriendsLink(){
+    var t = friendsLink();
+    function done(){
+      hap('ok'); toast('Ссылка скопирована');
+      var b = $('fr-copy'); if (b) { b.textContent = 'Скопировано ✓'; setTimeout(function(){ var x = $('fr-copy'); if (x) x.textContent = 'Копировать'; }, 1800); }
+    }
+    function fallback(){
+      var i = $('fr-link');
+      try { i.focus(); i.select(); i.setSelectionRange(0, t.length); document.execCommand('copy'); done(); }
+      catch (e) { toast('Не удалось скопировать'); }
+    }
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(done, fallback); return; } } catch (e) {}
+    fallback();
+  }
+  function shareFriendsLink(){
+    var u = 'https://t.me/share/url?url=' + encodeURIComponent(friendsLink()) + '&text=' + encodeURIComponent('Залетай в Puma Up!');
+    try { if (tg && tg.openTelegramLink) { tg.openTelegramLink(u); return; } } catch (e) {}
+    window.open(u, '_blank');
+  }
+  $('case-page').addEventListener('click', function(e){
+    if (e.target.closest('#fr-copy')) copyFriendsLink();
+    else if (e.target.closest('#fr-share')) shareFriendsLink();
+  });
   function caseById(id){ return CASES.filter(function(c){ return c.id === id; })[0]; }
   function pool(c){ return c.loot.filter(function(l){ return l[1] > 0; }).map(function(l){ return l[0]; }); }
   function left(ms){
@@ -2061,7 +2126,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   function rarMap(c){ var m = {}; c.loot.forEach(function(l){ m[l[0]] = rarOf(ITEMS[l[0]].v); }); return m; }
   function caseCard(c){
     var p = pool(c), byV = p.slice().sort(function(a, b){ return ITEMS[b].v - ITEMS[a].v; });
-    var price = c.id === 'free'
+    var price = c.friends ? friendsPrice() : c.id === 'free'
       ? '<span class="cprice free" data-price="free">' + (wait(c) > 0 ? left(wait(c)) : 'Бесплатно') + '</span>'
       : '<span class="cprice">' + fmt(c.cost) + starS() + '</span>';
     return '<button class="cc3" data-case="' + c.id + '" style="--c1:' + c.c1 + ';--c2:' + c.c2 + '"><div class="cv"><i class="rays"></i><i class="spk s1"></i><i class="spk s2"></i><i class="spk s3"></i>' +
@@ -2110,6 +2175,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }
   function renderAct(){
     var c = curCase; if (!c || !$('case-act')) return;
+    if (c.friends) { renderFriendsAct(); return; }
     if (c.id === 'free') {
       var w = wait(c);
       if (w > 0) {
@@ -2165,6 +2231,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   }
   function runCase(c){
     if (busy) return;
+    if (c.friends && friendsCount() < FRIENDS_GOAL) { toast('Нужно пригласить ' + FRIENDS_GOAL + ' друзей'); hap('err'); return; }
     if (c.id === 'free') { if (wait(c) > 0) return; }
     else if (S.bal < c.cost) { toast('Недостаточно звёзд'); return; }
     busy = true;
@@ -2175,7 +2242,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     }, function(){ busy = false; if (g0) g0.disabled = false; toast('Нет связи с сервером, ставка не принята'); hap('err'); });
   }
   function runCase2(c, prize){
-    if (c.id === 'free') S.daily = Date.now(); else { add(-c.cost); tb(c.cost); }
+    if (c.id === 'free') S.daily = Date.now(); else if (c.friends) S.friendsClaims = (S.friendsClaims | 0) + 1; else { add(-c.cost); tb(c.cost); }
     save(); lastCost = c.cost;
     var g = $('case-go'); if (g) g.disabled = true;
     var p = pool(c), ids = [], i;
