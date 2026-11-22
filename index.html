@@ -811,7 +811,7 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
     <div style="color:var(--muted);font-size:12px">Каждый код можно активировать один раз на аккаунт, число активаций ограничено. У некоторых кодов есть условие по сумме пополнения.</div>
   </div>
   <p class="note">Автоматического вывода звёзд пока нет.</p>
-  <p class="note" style="opacity:.6">Версия 22.11 · 16:00 · Башня x10, кейс «За друзей»</p>
+  <p class="note" style="opacity:.6">Версия 22.11 · 16:10 · Башня x10, кейс «За друзей»</p>
 </section>
 
 </main>
@@ -2902,12 +2902,19 @@ nav button.on{background:rgba(255,255,255,.12);color:var(--fg)}
   var tOn = false, tCells = 3, tBet = 0, tFloor = 0, tTrap = [], tMax = 8, tWait = false;
   var T_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#2FE08A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var T_BAD = '<svg viewBox="0 0 24 24" fill="none" stroke="#FF4D6D" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-  /* «Сложно» (2 клетки): 10 этажей, множители заданы списком, максимум x10. Остальные режимы: 8 этажей и формула. */
+  /* Множители заданы списками. Чем сложнее режим, тем выше икс на каждом этаже.
+     Лёгко (4 клетки): 8 этажей, максимум x3.8. Средне (3 клетки): 8 этажей, максимум x6.2.
+     Сложно (2 клетки): 10 этажей, максимум x10. */
   var T_HARD = [1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  var T_MULTS = {
+    4: [1.1, 1.3, 1.6, 1.9, 2.3, 2.7, 3.2, 3.8],
+    3: [1.3, 1.7, 2.2, 2.8, 3.5, 4.3, 5.2, 6.2],
+    2: T_HARD
+  };
   function tMult(k){
     if (!k) return 1;
-    if (tCells === 2) return T_HARD[Math.min(k, T_HARD.length) - 1];
-    return Math.pow(tCells / (tCells - 1), k) * 0.77;
+    var m = T_MULTS[tCells];
+    return m[Math.min(k, m.length) - 1];
   }
   function tBuild(){
     var h = '', f, c;
